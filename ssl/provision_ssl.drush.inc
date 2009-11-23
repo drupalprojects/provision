@@ -26,7 +26,19 @@ function provision_ssl_provision_apache_vhost_config($url, $options) {
       $newoptions['site_port'] = 80;
       _provision_apache_create_config($url . '_80', $newoptions, _provision_apache_redirect_template());
     }
-    return array("php_value session.cookie_secure 1", "SSLEngine On");
+    $lines = array("php_value session.cookie_secure 1", "SSLEngine On");
+    // we make sure it is set to keep default behaviour (ie. if unset,
+    // it is yes)
+    if (isset($options['ssl_wildcard']) && !$options['ssl_wildcard']) {
+      $ssl_dir = drush_get_option('config_path') . "/ssl.d/";
+      if (file_exists("$ssl_dir/$url.crt") && file_exists("$ssl_dir/$url.key")) {
+        $lines[] = "SSLCertificateFile " . "$ssl_dir/$url.crt";
+        $lines[] = "SSLCertificateKeyFile " . "$ssl_dir/$url.key";
+      } else {
+        drush_log(dt("cannot find SSL certificates %cert or %key, using server-wide wildcard", array('%cert' => "$ssl_dir/$url.crt", '%key' => "$ssl_dir/$url.key")));
+      }
+    }
+    return $lines;
   } else {
     return NULL;
   }
