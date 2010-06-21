@@ -10,6 +10,7 @@
  * Make sure the site is installed and enabled, and that we have a valid target to back up to.
  */
 function drush_provision_drupal_provision_backup_validate($backup_file = NULL) {
+
   if (!@drush_bootstrap(DRUSH_BOOTSTRAP_DRUPAL_CONFIGURATION)) {
     if (drush_get_option('force', false)) {
       drush_log("clearing error");
@@ -81,5 +82,34 @@ function drush_provision_drupal_provision_backup_rollback() {
     provision_file()->unlink($backup_file)
       ->succeed('Removed stale backup file @path')
       ->fail('Failed deleting backup file @path');
+  }
+}
+
+/**
+ * Post backup purge. delete older files if instructed too.
+ */
+function drush_provision_drupal_post_provision_backup() {
+  if ($timestamp = drush_get_option('delete_backups_older_than',FALSE)) {
+    $timestamp = mktime() - $timestamp;
+    $to_delete = array();
+    $regex = sprintf("/^%s-(.*)\.(.*)\.tar\.gz$/", d()->uri);
+    $backup_path = d('@server_master')->backup_path;
+    $files = drush_scan_directory($backup_path , $regex, array('.', '..', 'CVS', '.svn'), 0, FALSE, 'basename');
+
+    if (sizeof($files)) {
+      foreach ($files as $filename => $file) {
+        $matches = array();
+         preg_match($regex, $filename, $matches);
+        $filetime = strtotime($matches[1] .' '. $matches[2]);
+        if ($filetime < $timestamp) {
+          $to_delete[] = $backup_path . '/' . $filename;
+        }
+      }
+
+      foreach ($to_delete as $delete) {
+        provision_file()->unlink($delete)->succeed("Backup file @path has been deleted")->fail("Backup file @path could not be deleted");
+      }
+      drush_set_option('backup_files_deleted', $to_delete);
+    }
   }
 }
