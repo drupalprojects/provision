@@ -67,6 +67,8 @@ class provisionService_http_public extends provisionService_http {
 
     $data['http_port'] = $this->server->http_port;
 
+    $data['http_log_directory'] = $this->server->http_log_directory;
+
     // We assign this generic catch all for standard http.
     // The SSL based services will override this with the
     // correct ip address.

@@ -14,6 +14,7 @@ class provisionService extends provisionChainedState {
 
   protected $has_restart_cmd = FALSE;
   protected $has_port = FALSE;
+  protected $has_log_directory = FALSE;
 
   protected $configs = array();
 
@@ -49,6 +50,9 @@ class provisionService extends provisionChainedState {
       if ($this->has_restart_cmd) {
         $this->server->setProperty($this->service . '_restart_cmd', $this->default_restart_cmd());
       }
+      if ($this->has_log_directory) {
+        $this->server->setProperty($this->service . '_log_directory', $this->default_log_directory());
+      }
     }
     return TRUE;
   }
@@ -67,6 +71,10 @@ class provisionService extends provisionChainedState {
   }
 
   function default_restart_cmd() {
+    return false;
+  }
+
+  function default_log_directory() {
     return false;
   }
 

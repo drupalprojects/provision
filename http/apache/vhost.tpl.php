@@ -42,6 +42,10 @@ if ($this->redirection || $ssl_redirection) {
     print " RewriteRule ^/*(.*)$ http://{$this->uri}/$1 [L,R=301]\n";
   }
 }
+
+if ($this->split_logfiles) {
+  print " CustomLog " . $http_log_directory . "/" . $this->uri . ".log combined";
+}
 ?>
 
 

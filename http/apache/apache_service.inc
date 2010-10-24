@@ -3,9 +3,14 @@
 class provisionService_http_apache extends provisionService_http_public {
   protected $application_name = 'apache';
   protected $has_restart_cmd = TRUE;
+  protected $has_log_directory = TRUE;
 
   function default_restart_cmd() {
     return provisionService_http_apache::apache_restart_cmd();
+  }
+
+  function default_log_directory() {
+    return provisionService_http_apache::apache_log_directory();
   }
 
   function cloaked_db_creds() {
@@ -45,6 +50,21 @@ class provisionService_http_apache extends provisionService_http_public {
     }
 
     return "sudo $command graceful";
+  }
+
+  public static function apache_log_directory() {
+    $log_directory = '/var/log/apache2'; #debian/ubuntu
+    $options[] = '/var/log/apache'; #centos?
+    $options[] = '/var/log/httpd'; #redhat/centos ?
+    $options[] = $log_directory;
+
+    foreach ($options as $test) {
+      if(is_dir($test)) {
+        $log_directory = $test;
+        break;
+      }
+    }
+   return $log_directory;
   }
 
   /**
