@@ -80,7 +80,12 @@ if ($server->nginx_has_upload_progress) {
   client_body_temp_path  /var/lib/nginx/body 1 2;
   access_log             /var/log/nginx/access.log main;
   error_log              /var/log/nginx/error.log crit;
-      
+
+## Note: Aegir has been configured to assume that these logs are rotated once every <?php print $http_log_rotation_frequency ?> day(s)
+
+## @TODO use the log directory set via frontend: <?php print $http_logd_path ?>
+## @TODO use the log format set via the frontend: <?php print $http_log_format ?>
+## @TODO use the log filename set via the frontend: <?php print $http_log_name ?>
 
 #######################################################
 ###  nginx default server

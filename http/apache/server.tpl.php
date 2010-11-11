@@ -27,6 +27,11 @@ Include <?php print $http_vhostd_path ?>
 # platforms
 Include <?php print $http_platformd_path ?>
 
+# logs
+## Note: Aegir has been configured to assume that these logs are rotated once every <?php print $http_log_rotation_frequency ?> day(s)
+## TODO use the log directory and log format set via the frontend 
+## CustomLog <?php print $http_log_format ?> <?php print $http_logd_path ?>/<?php print $http_log_name ?>
+
 # other configuration, not touched by aegir
 # this allows to have default (for example during migrations) that are eventually overriden by aegir
 Include <?php print $http_postd_path ?>

@@ -63,6 +63,16 @@ class provisionService_http_public extends provisionService_http {
       $data['http_postd_path'] = $this->server->http_postd_path;
       $data['http_platformd_path'] = $this->server->http_platformd_path;
       $data['http_vhostd_path'] = $this->server->http_vhostd_path;
+      $data['http_logd_path'] = $this->server->http_logd_path;
+      $data['http_log_name'] = $this->server->http_log_name;
+      $data['http_log_rotation_frequency'] = $this->server->http_log_rotation_frequency;
+      $data['http_log_format_name'] = $this->server->http_log_format_name;
+      // default: apache common log format with vhost prepended
+      $data['http_log_format'] = "%v:%p %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"";
+      // @TODO use http_log_format_name to set the http_log_format
+      // in order for statistics collection to work, each name must correspond
+      // to an allowed option for the --pattern argument of provision_bwstats,
+      // meaning that a regex which can parse it is defined in that module.
     }
 
     $data['http_port'] = $this->server->http_port;
@@ -114,6 +124,10 @@ class provisionService_http_public extends provisionService_http {
       $this->server->http_postd_path = "{$app_dir}/post.d";
       $this->server->http_platformd_path = "{$app_dir}/platform.d";
       $this->server->http_vhostd_path = "{$app_dir}/vhost.d";
+      $this->server->http_logd_path = "{$app_dir}/log.d";
+      $this->server->http_log_name = preg_replace('/[^-A-Za-z0-9_.]/', '', $this->server->name).'.log';
+      $this->server->http_log_rotation_frequency = 1; # specify number of days
+      $this->server->http_log_format_name = "host+clf"; // common log format with vhost prepended
     }
   }
 
@@ -142,6 +156,11 @@ class provisionService_http_public extends provisionService_http {
       provision_file()->create_dir($this->server->http_vhostd_path , dt("Webserver virtual host configuration"), 0700);
       $this->sync($this->server->http_vhostd_path, array(
         'exclude' => $this->server->http_vhostd_path . '/*',  // Make sure remote directory is created
+      )); 
+
+      provision_file()->create_dir($this->server->http_logd_path , dt("Webserver logs"), 0700);
+      $this->sync($this->server->http_logd_path, array(
+        'exclude' => $this->server->http_logd_path . '/*',  // Make sure remote directory is created
       )); 
     } 
 
