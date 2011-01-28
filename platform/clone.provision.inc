@@ -43,8 +43,8 @@ function drush_provision_drupal_provision_clone($new_uri, $platform = null) {
   $options['name'] = $new_uri;
   $options['platform'] = (isset($platform)) ? $platform : $options['platform'];
   $options['root'] = d($options['platform'])->root;
-  $options['aliases'] = array();
-  $options['redirection'] = 0;
+  $options['aliases'] = drush_get_option('aliases');
+  $options['redirection'] = drush_get_option('redirection');
 
   if ($profile = drush_get_option('profile', FALSE)) {
     $options['profile'] = $profile;
