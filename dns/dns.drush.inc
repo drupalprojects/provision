@@ -342,14 +342,23 @@ class provisionService_dns extends provisionService {
     }
 
     $this->config('zone', $zone)->record_set($sub, array('A' => $ips));
+    $zones[$zone] = $zone;
+
     foreach ($aliases as $alias) {
-        if ($this->guess_zone($alias) == $zone) {
-            $this->config('zone', $zone)->record_set($this->guess_zone($alias, 'subdomain'),
-                                                     array('CNAME' => array($zone . '.')));
+        $zone_alias = $this->guess_zone($alias);
+        $sub_alias = $this->guess_zone($alias, 'subdomain');
+        if ($zone_alias == $zone) {
+          $this->config('zone', $zone)->record_set($sub_alias, array('CNAME' => array($zone . '.')));
+        } else {
+          $this->config('zone', $zone_alias)->record_set($sub_alias, array('A' => $ips));
+          // If multiple aliases have the same zone, the zone should be created only once
+          $zones[$zone_alias] = $zone_alias;
         }
     }
-    
-    $this->create_zone($zone);
+
+    foreach ($zones as $zone) {
+      $this->create_zone($zone);
+    }
   }
 
 
