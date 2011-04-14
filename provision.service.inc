@@ -108,14 +108,23 @@ class provisionService extends provisionChainedState {
       $data = array('name' => $data);
     }
 
-    if (!isset($this->config_cache[$this->context->name][$config])) {
-      foreach ((array) $this->configs[$config] as $class) {
+    // Calculates the cache ID
+    $cid = sha1(serialize($data));
+
+    if (!isset($this->config_cache[$this->context->name][$config][$cid])) {
+      // XXX: All services use multidimensional arrays to store class name config file
+      // but that's useless because only the last class is cached.
+      // ex: $this->configs['zone'][] = 'provisionConfig_bind_zone';
+      /*foreach ((array) $this->configs[$config] as $class) {
         $this->config_cache[$this->context->name][$config] = new $class($this->context, array_merge($this->config_data($config), $data));
-      }
+      }*/
+      $class = $this->configs[$config][0]; // backward compatibility ??
+      $data = array_merge($this->config_data($config), $data);
+      $this->config_cache[$this->context->name][$config][$cid] = new $class($this->context, $data);
     }
 
-    if (isset($this->config_cache[$this->context->name][$config])) {
-      $this->_config = $this->config_cache[$this->context->name][$config];
+    if (isset($this->config_cache[$this->context->name][$config][$cid])) {
+      $this->_config = $this->config_cache[$this->context->name][$config][$cid];
     }
 
     return $this;
