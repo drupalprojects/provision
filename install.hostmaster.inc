@@ -50,9 +50,9 @@ Don't worry: you will get to review those settings after the final install");
   } else {
     $default_email = 'webmaster@' . drush_get_option('aegir_host');
   }
-  while (!filter_var(drush_get_option('client_email'), FILTER_VALIDATE_EMAIL)) {
-   $client_email = drush_prompt(dt("Admin user e-mail"), $default_email);
-   drush_set_option('client_email', $client_email);
+  drush_set_default('client_email', $default_email);
+  while (!filter_var(drush_get_option('client_email'), FILTER_VALIDATE_EMAIL) && !drush_get_context('DRUSH_AFFIRMATIVE')) {
+    drush_set_option('client_email', drush_prompt(dt("Admin user e-mail"), $default_email));
   }
 
   drush_print(dt('
@@ -206,8 +206,18 @@ function drush_provision_hostmaster_install($site = NULL) {
   drush_print(dt("Initializing the hosting system"));
   provision_backend_invoke($site_name, 'hosting-setup');
 
-  drush_print("************************************************************************\n\n\n");
-  drush_print(dt("Aegir is now installed. You can visit it at @link", array('@link' => $data['context']['login_link'])));
-  drush_print("************************************************************************");
+  drush_print("");
+  drush_print("==============================================================================");
+  drush_print("");
+  drush_print("");
+  drush_print(dt("Congratulations, Aegir has now been installed."));
+  drush_print("");
+  drush_print(dt("You should now log in to the Aegir frontend by opening the following link in your web browser:"));
+  drush_print("");
+  drush_print($data['context']['login_link']);
+  drush_print("");
+  drush_print("");
+  drush_print("==============================================================================");
+  drush_print("");
 }
 

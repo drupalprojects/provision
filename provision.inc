@@ -1,25 +1,102 @@
 <?php
-// $Id$
-
 /**
  * @file
  * The provisioning framework API.
  *
- * API functions that are used by the provisioning framework to provide structure to the provisioning modules.
- *
- * @see errorhandling
- * @see logging
- * @see sitedata
- * @see provisionvalues
+ * API functions that are used by the provisioning framework to provide
+ * structure to the provisioning modules.
  */
 
 drush_errors_on();
 
 /**
+ * Return an instance of the provision autoloader.
+ *
+ * This will instiatate an instance if it needs to.
+ */
+function provision_autoload() {
+  static $instance = NULL;
+
+  if (is_null($instance)) {
+    require_once(dirname(__FILE__) . '/Symfony/Component/ClassLoader/UniversalClassLoader.php');
+    $instance = new UniversalClassLoader();
+    // Activate the autoloader.
+    $instance->register();
+  }
+
+  return $instance;
+}
+
+/**
+ * Register a PECL style prefix with the provision autoloader.
+ *
+ * @param $prefix
+ *   The class prefix to register.
+ * @param $dir
+ *   The directory to search for the classes in.
+ * @param $prepend
+ *   If the directory should be searched first for the classes in the given
+ *   prefix, set this to TRUE, otherwise, the default, FALSE, is fine.
+ */
+function provision_autoload_register_prefix($prefix, $dir, $prepend = FALSE) {
+
+  // Get any current directories set for this prefix.
+  $current_prefixes = provision_autoload()->getPrefixes();
+  if (isset($current_prefixes[$prefix])) {
+    $dirs = $current_prefixes[$prefix];
+  }
+  else {
+    $dirs = array();
+  }
+
+  // Now add the new one.
+  if ($prepend) {
+    array_unshift($dirs, $dir);
+  }
+  else {
+    array_push($dirs, $dir);
+  }
+
+  // Set the prefixes.
+  provision_autoload()->registerPrefix($prefix, $dirs);
+}
+
+// Add our prefix to the autoloader.
+provision_autoload_register_prefix('Provision_', dirname(__FILE__));
+
+/**
+ * Return the directory containing the file a class is defined in.
+ *
+ * @param $class_name
+ *   The class name to search for.
+ * @return
+ *   A directory if the class can be found or an empty string if not.
+ */
+function provision_class_directory($class_name) {
+  return dirname(provision_class_file($class_name));
+}
+
+/**
+ * Return the file a class is defined in.
+ *
+ * @param $class_name
+ *   The class name to search for.
+ * @return
+ *   A file if the class can be found or an empty string if not.
+ */
+function provision_class_file($class_name) {
+  if (class_exists($class_name)) {
+    $reflect = new reflectionClass($class_name);
+    return $reflect->getFilename();
+  }
+  return '';
+}
+
+/**
  * @defgroup sitedata Site data management utility functions.
  * @{
  * The provision framework maintains a site.php file in the sites directory, to maintain additional
- * information from the front end, as well as providing a change history of setting changes. 
+ * information from the front end, as well as providing a change history of setting changes.
  *
  * These functions load, save and manage changes made to the site data. This data has diagnostic and infrastructure
  * values, that allow sites to be more easily moved between different provisioned platforms.
@@ -43,7 +120,7 @@ function provision_is_local_host($host) {
   // your site alias.  Note that sometimes 'uname -n' does not return the
   // correct value.  To fix it, put the correct hostname in /etc/hostname
   // and then run 'hostname -F /etc/hostname'.
-  return ($host == 'localhost') || 
+  return ($host == 'localhost') ||
     ($host == '127.0.0.1') ||
     (gethostbyname($host) == '127.0.0.1') ||
     (gethostbyname($host) == '127.0.1.1') || // common setting on
@@ -57,7 +134,7 @@ function provision_is_local_host($host) {
  *
  * this replicates hostname -f, which is not portable
  */
-function provision_fqdn($host = null) {
+function provision_fqdn($host = NULL) {
   if (is_null($host)) {
     $host = php_uname('n');
   }
@@ -84,7 +161,7 @@ function provision_get_base_url() {
  */
 function provision_save_server_data() {
   if (!drush_get_error()) {
-    $config = new provisionConfig_drushrc_server(d()->name);
+    $config = new Provision_Config_Drushrc_Server(d()->name);
     $config->write();
   }
 }
@@ -92,7 +169,7 @@ function provision_save_server_data() {
 
 function provision_save_site_data() {
   if (!drush_get_error()) {
-    $config = new provisionConfig_drushrc_site(d()->name);
+    $config = new Provision_Config_Drushrc_Site(d()->name);
     $config->write();
     provision_drupal_sync_site();
   }
@@ -104,7 +181,7 @@ function provision_save_site_data() {
  */
 function provision_save_platform_data() {
   if (!drush_get_error()) {
-    $config = new provisionConfig_drushrc_platform(d()->name);
+    $config = new Provision_Config_Drushrc_Platform(d()->name);
     $config->write();
     provision_drupal_sync_site();
   }
@@ -134,7 +211,7 @@ function _provision_recursive_delete($path) {
       if ($entry == '.' || $entry == '..') {
         continue;
       }
-      $entry_path = $path .'/'. $entry;
+      $entry_path = $path . '/' . $entry;
       $ret &= _provision_recursive_delete($entry_path);
     }
     $d->close();
@@ -216,7 +293,7 @@ function provision_current_user() {
  *   groupname or group id of group.
  *
  * @return
- *   Boolean. True if user does belong to group, 
+ *   Boolean. True if user does belong to group,
  *   and FALSE if the user does not belong to the group, or either the user or group do not exist.
  */
 function provision_user_in_group($user, $group) {
@@ -336,7 +413,7 @@ function _scrub_object($input) {
  * @see drush_backend_invoke_args()
  */
 function provision_backend_invoke($target, $command, $arguments = array(), $data = array(), $mode = 'GET') {
-  return drush_backend_invoke_args('@' . ltrim($target, '@') . ' ' . $command, $arguments, $data + array('root' => null, 'uri' => null), $mode);
+  return drush_backend_invoke_args('@' . ltrim($target, '@') . ' ' . $command, $arguments, $data + array('root' => NULL, 'uri' => NULL), $mode);
 }
 
 /**
@@ -360,7 +437,7 @@ function provision_version() {
  * This is the major release number, the first part of the version
  * stored in the info file
  *
- * @return int 
+ * @return int
  *   a number greater than zero, 1 for 1.0 or 1.0-rc2, 2 for 2.0, etc.
  *
  * @see provision_version_parts()
@@ -376,87 +453,13 @@ function provision_api_version() {
  * This cleans up the version number by removing the Drupal version
  * (6.x-...) and splits the remaining version on dots.
  *
- * @return array 
+ * @return array
  *   the major and minor version numbers, e.g. array(1, 0-rc3) for
  *   1.0-rc3 or array(1, 2) for 1.2
  */
 function provision_version_parts() {
   $version = preg_replace('/^[^-]*-/', '', provision_version()); // remove "6.x-"
   return explode('.', $version);
-}
-
-/**
- * A base class for the service and file handling classes that implements
- * chaining of methods.
- */
-class provisionChainedState {
-  protected $last_status;
-  protected $tokens;
-
-  /**
-   * Clear internal state
-   */
-  protected function _clear_state() {
-    $this->last_status = NULL;
-    $this->tokens = NULL;
-  }
-
-  /**
-   * Return the status of the last operation.
-   *
-   * @return
-   *   TRUE or FALSE for success or failure; NULL if there was not a previous
-   *   operation.
-   */
-  function status() {
-    return $this->last_status;
-  }
-
-  /**
-   * Log a notice into the logging system, if the last operation completed
-   * succesfully.
-   * 
-   * @param $message
-   *   The message to log, a string.
-   */
-  function succeed($message) {
-    if ($this->last_status === TRUE) {
-      drush_log(dt($message, $this->tokens), 'message');      
-    }
-
-    return $this;
-  }
-
-  /**
-   * Log a notice into the logging system, if the last operation did not
-   * complete succesfully.
-   * 
-   * @param $message
-   *   Log this as a error to the logging system, if the $error_codes parameter
-   *   has been set, otherwise, log this as a warning. If the operation
-   *   specifies an additional reason for the operation failing, it will be
-   *   appended to this message.
-   *
-   * @param error_codes
-   *   Generate these system level errors using the provision error bitmasks.
-   */
-  function fail($message, $error_codes = NULL) {
-    if (!empty($this->tokens['@reason'])) {
-      $message .= ' (@reason)';
-    }
-    if ($this->last_status === FALSE) {
-      if (is_null($error_codes)) {
-        // Trigger a warning
-        drush_log(dt($message, $this->tokens), 'warning');
-      }
-      else {
-        // Trigger a sysem halting error
-        drush_set_error($error_codes, dt($message, $this->tokens));
-      }
-    }
-
-    return $this;
-  }
 }
 
 // Base class for provision exceptions.
@@ -484,7 +487,7 @@ class provisionException_continue extends provisionException {
 class provision {
   /**
    * The actual body of the method_invoke function.
-   * 
+   *
    * This is a static method so it can be re-used by some other classes
    * that aren't contexts. (notably services and configs).
    */
@@ -495,14 +498,6 @@ class provision {
   }
 }
 
-
-
 include_once('provision.context.inc');
-include_once('provision.context.server.inc');
-include_once('provision.context.platform.inc');
-include_once('provision.context.site.inc');
 include_once('provision.service.inc');
 include_once('provision.file.inc');
-include_once('provision.config.inc');
-
-
