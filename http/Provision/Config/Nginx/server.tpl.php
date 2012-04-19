@@ -22,6 +22,7 @@
   fastcgi_param  SERVER_ADDR        $server_addr;
   fastcgi_param  SERVER_PORT        $server_port;
   fastcgi_param  SERVER_NAME        $server_name;
+  fastcgi_param  USER_DEVICE        $device;
   fastcgi_param  REDIRECT_STATUS    200;
   fastcgi_index  index.php;
 
@@ -37,8 +38,8 @@
   request_pool_size               4k;
   server_names_hash_bucket_size  512;
   server_names_hash_max_size    8192;
-  types_hash_max_size           8192;
   types_hash_bucket_size         512;
+  map_hash_bucket_size           192;
   fastcgi_buffer_size           128k;
   fastcgi_buffers             256 4k;
   fastcgi_busy_buffers_size     256k;
@@ -79,8 +80,7 @@
   fastcgi_hide_header 'X-Powered-By';
   fastcgi_hide_header 'X-Drupal-Cache';
 
- ## TCP options
-  tcp_nopush  on;
+ ## TCP options moved to /etc/nginx/nginx.conf
 
  ## SSL performance
   ssl_session_cache   shared:SSL:10m;
@@ -94,7 +94,6 @@
   gzip_types        text/plain text/css application/x-javascript text/xml application/xml application/xml+rss text/javascript;
   gzip_vary         on;
   gzip_proxied      any;
-  gzip_disable      "MSIE [1-6]\.";
 <?php
 $nginx_has_gzip = drush_get_option('nginx_has_gzip');
 if ($nginx_has_gzip) {
@@ -148,7 +147,7 @@ map $request_uri $key_uri {
 }
 
 ###
-### Deny crawlers without 403 response.
+### Deny crawlers.
 ###
 map $http_user_agent $is_crawler {
   default                                                                                                                     '';
@@ -156,7 +155,7 @@ map $http_user_agent $is_crawler {
 }
 
 ###
-### Deny all known bots on some URIs without 403 response.
+### Deny all known bots on some URIs.
 ###
 map $http_user_agent $is_bot {
   default                                                    '';
@@ -164,7 +163,7 @@ map $http_user_agent $is_bot {
 }
 
 ###
-### Deny listed requests for security reasons without 403 response.
+### Deny listed requests for security reasons.
 ###
 map $args $is_denied {
   default                                                                                                      '';
@@ -179,7 +178,7 @@ map $args $is_denied {
 $ip_address = !empty($ip_address) ? $ip_address : '*';
 ?>
 server {
-  limit_conn   gulag 18; # like mod_evasive - this allows max 18 simultaneous connections from one IP address
+  limit_conn   gulag 32; # like mod_evasive - this allows max 32 simultaneous connections from one IP address
 <?php
 if ($ip_address == '*') {
   print "  listen       {$ip_address}:{$http_port};\n";
