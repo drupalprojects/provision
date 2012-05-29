@@ -159,7 +159,7 @@ map $request_uri $key_uri {
 ###
 map $http_user_agent $is_crawler {
   default                                                                                                                     '';
-  ~*HTTrack|MJ12|HTMLParser|libwww|PECL|Automatic|Click|SiteBot|BuzzTrack|Sistrix|Offline|Screaming|Nutch|Mireo|SWEB|Morfeus  is_crawler;
+  ~*HTTrack|MJ12|HTMLParser|libwww|PECL|Automatic|Click|SiteBot|BuzzTrack|Sistrix|Offline|Screaming|Nutch|Mireo|SWEB|Morfeus|GSLFbot  is_crawler;
 }
 
 ###
