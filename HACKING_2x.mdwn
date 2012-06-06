@@ -204,3 +204,105 @@ overwriting changes if we ever allow some tasks to be ran in parallel.
 
 Nevertheless, this seems like a much simpler implementation that would
 also allow per-task cron periods.
+
+The provision context engine
+============================
+
+**Otherwise known as "d(), the aliases, the contexts and the nature of
+the universe".**
+
+Anyone who has gotten into Aegir sufficiently deep will have
+encountered the Provision_Context class and the d() function. Some
+blogs were written about it to explain a little what it does, but it
+was mostly limited to how to use it, not really how to extend it.
+
+The limitations of d() (thee?)
+------------------------------
+
+There are significant limitations to this framework. First off, it is
+*confusing*: no programmer I have known to get into the project have
+fully gotten their head wrapped around the idea of the provision
+contexts.
+
+Second, it *overlaps* with a lot of existing functionality in Drush,
+in name or in essence. The provision contexts extend the Drush aliases
+to provide automatic saving of the aliases, but also generation of
+configuration files based on templates. That is interesting in itself,
+but has never been integrated upstream and no one, as far as I know,
+ever dared to start doing this. Besides, all the work for this is done
+by provision-save command, which is mostly a stub that serialises
+drush options into an alias.
+
+It also overlaps, in name, with the Drush contexts, which are
+themselves confusing, as there are two things called drush
+contexts. The first one is `drush_get_context()` which is really a way
+to store static data in Drush, and should be renamed
+`drush_get_static()`. The second one *uses* the static storage to
+provide a hierarchical storage mechanism for drush options, which
+include the site/platform/etc drushrc files, the drush aliases, and so
+on.
+
+Third, it *duplicates information* between the context storage
+(ie. the alias), the frontend (MySQL) database *and* the generated
+config files. The latter could arguably be excused, since the
+alternative would be write write a parser for all config files we
+generate, which can be a pain in the butt. However, the duplication
+between the frontend database and the drush aliases is a real
+problem.
+
+The original idea behind the aliases was to be a step towards
+storing data "in the cloud", or more precisely, in a key-value storage
+system like Redis. The fact that the implementation is incomplete is
+due to the departure of our founder, and we need to take care of this
+problem for things to make sense again.
+
+Fourth, it *conflicts* with Drush's alias semantics. By using FQDNs as
+the alias name, we are looking for trouble. Drush aliases can be
+multiple per site, so you can have site @example with an alias
+@example.prod and @example.dev, ie. the separator for those multiple
+aliases is the dot, just like domain names.
+
+Aegir currently only defines one alias per site, but this could get
+really confusing, at the very least, for users coming from a Drush
+universe with a heavy use of shell aliases. Worst case, it will create
+situations where the wrong site is being used for tasks.
+
+The future of d()
+-----------------
+
+(Okay I'll stop with the puns.)
+
+It is clear that we need to reshuffle this code. My first reflex is to
+simply scrap this and start from scratch. This could be coherent with
+the earlier thoughts on removing some aliases (the @server aliases,
+more specifically) and the reworking of the queuing system, which is
+what this all depends on in the end.
+
+If we can access the data stored in the MySQL database directly, we
+may not need aliases at all, or more precisely, drush aliases could be
+generated on the fly based on MySQL credentials given to the Aegir
+user (or other users!) that would give the user access to the frontend
+data.
+
+No need to provision-save anymore - the aliases would be loaded from
+the DB on the fly. This may also allows us to get rid of the
+"arguments" column in the hosting task table (for certain tasks like
+install at the very least), something that shouldn't be neglected.
+
+The future of config file generation
+------------------------------------
+
+This is the one sticky bit that is not covered and requires the
+Provision_Context class to remain. The class allows developers to
+specify configuration file templates to generate based on the context
+variables, which is very useful.
+
+This is something that we may want to integrate into Drush, but not in
+its current state. It would probably need to be wrapper around Drush's
+concept of aliases more tightly and more simply. This may yet mean
+just extending the current alias code with a class, as we do now,
+unfortunately (as we are building a OO framework on top of a non-OO
+tangle).
+
+I am still unclear as to what the next step is for the backend, but
+hopefully this will yield to some discussions and new ideas.
