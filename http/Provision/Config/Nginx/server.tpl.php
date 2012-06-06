@@ -7,13 +7,6 @@
  ## Default index files
   index         index.php index.html;
 
- ## FastCGI Caching
-  fastcgi_cache_path /var/lib/nginx/speed
-                     levels=2:2:2
-                     keys_zone=speed:10m
-                     inactive=15m
-                     max_size=3g;
-
  ## General Options
   ignore_invalid_headers          on;
 <?php
