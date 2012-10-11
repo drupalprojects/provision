@@ -49,6 +49,7 @@ function drush_provision_drupal_provision_install() {
  // Requires at least the database settings to complete.
   provision_prepare_environment();
   _provision_drupal_create_settings_file();
+  _provision_drupal_create_site_symlinks();
 
   provision_save_site_data();
 
@@ -72,7 +73,7 @@ function drush_provision_drupal_post_provision_install() {
   drush_set_option('installed', TRUE, 'site');
   _provision_drupal_rebuild_caches();
   drush_set_option('packages', _scrub_object(provision_drupal_system_map()), 'site');
-  _provision_client_create_symlink();
+  //_provision_client_create_symlink();
   drush_include_engine('drupal', 'cron_key');
 }
 

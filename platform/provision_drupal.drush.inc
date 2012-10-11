@@ -136,6 +136,21 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
       $url = 'all';
     }
   }
+
+  // Create the site path where settings.php & drushrc.php will live
+  $path = "sites/$url";
+  $perm = 0755;
+  if (!is_dir($path)) {
+    provision_file()->mkdir($path)
+      ->succeed('Created <code>@path</code>')
+      ->fail('Could not create <code>@path</code>', 'DRUSH_PERM_ERROR');
+    provision_file()->chmod($path, $perm)
+      ->succeed('Changed permissions of <code>@path</code> to @perm')
+      ->fail('Could not change permissions <code>@path</code> to @perm');
+  }
+
+  $cwd = getcwd();
+  chdir(d()->server->clients_path . '/' . d()->client_name);
   # those directories will be created and their modes changed
   $mkdir = array(
     "sites/$url"                 => 0755,
@@ -219,6 +234,7 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
       ->succeed('Changed group ownership of <code>@path</code> to @gid')
       ->fail('Could not change group ownership <code>@path</code> to @gid');
   }
+  chdir($cwd);
 }
 
 /**
@@ -622,6 +638,26 @@ function provision_prepare_environment() {
   }
 }
 
+/**
+ * Create symlinks from the site directory on the platform to the sub-
+ * directories in the client's site directory.
+ */
+function _provision_drupal_create_site_symlinks() {
+  $sub_dirs = array(
+    'files',
+    'libraries',
+    'modules',
+    'private',
+    'themes',
+  );
+
+  $client_path = d()->server->clients_path . '/' . d()->client_name;
+  foreach ($sub_dirs as $subdir) {
+    provision_file()->symlink($client_path . '/sites/' . d()->uri, d()->site_path . '/' . $sub_dir)
+      ->succeed('Created symlink @path to @target')
+      ->fail('Could not create symlink @path to @target: @reason');
+  }
+}
 
 /**
  * Reload drushrc files (if available) from several possible locations.
