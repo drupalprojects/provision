@@ -29,6 +29,7 @@ class Provision_Service extends Provision_ChainedState {
 
   protected $has_restart_cmd = FALSE;
   protected $has_port = FALSE;
+  protected $support_symlinks = FALSE;
 
   protected $configs = array();
 
@@ -64,6 +65,9 @@ class Provision_Service extends Provision_ChainedState {
       if ($this->has_restart_cmd) {
         $this->server->setProperty($this->service . '_restart_cmd', $this->default_restart_cmd());
       }
+      if ($this->has_site_symlinks) {
+        $this->server->setProperty($this->service . '_site_symlinks', $this->default_site_symlinks());
+      }
     }
     return TRUE;
   }
@@ -82,6 +86,10 @@ class Provision_Service extends Provision_ChainedState {
   }
 
   function default_restart_cmd() {
+    return false;
+  }
+
+  function default_site_symlinks() {
     return false;
   }
 

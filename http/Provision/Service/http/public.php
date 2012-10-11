@@ -3,6 +3,7 @@
 // Public http service , as in non-encrypted and listening on a port.
 class Provision_Service_http_public extends Provision_Service_http {
   protected $has_port = TRUE;
+  protected $has_site_symlinks = TRUE;
    
   function default_port() {
     return 80;
