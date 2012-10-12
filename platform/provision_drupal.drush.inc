@@ -151,7 +151,43 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
 
   $cwd = getcwd();
   chdir(d()->server->clients_path . '/' . d()->client_name);
-  # those directories will be created and their modes changed
+
+
+  $dirs = _provision_drupal_get_directories_to_create($url);
+
+  foreach ($dirs['mkdir'] as $path => $perm) {
+    if (!is_dir($path)) {
+      provision_file()->mkdir($path)
+        ->succeed('Created <code>@path</code>')
+        ->fail('Could not create <code>@path</code>', 'DRUSH_PERM_ERROR');
+    }
+
+    provision_file()->chmod($path, $perm, !in_array($path, $dirs['not_recursive']))
+      ->succeed('Changed permissions of <code>@path</code> to @perm')
+      ->fail('Could not change permissions <code>@path</code> to @perm');
+  }
+  foreach ($dirs['chgrp'] as $path => $group) {
+    provision_file()->chgrp($path, $group, !in_array($path, $dirs['not_recursive']))
+      ->succeed('Changed group ownership of <code>@path</code> to @gid')
+      ->fail('Could not change group ownership <code>@path</code> to @gid');
+  }
+  chdir($cwd);
+}
+
+/**
+ * List the directories for site/platform creation with relevant properties.
+ *
+ * @param url
+ *   The url of the site to check
+ * @return
+ *   An array of arrays listing:
+ *     'mkdir' = the directories to create and permissions to apply
+ *     'chgrp' = the directories to create and the system group that owns them
+ *     'not_recursive' = the directories to exclude from recursive operations
+ */
+function _provision_drupal_get_directories_to_create($url) {
+
+  // These directories will be created and their modes changed
   $mkdir = array(
     "sites/$url"                 => 0755,
     # those should be writable by the aegir primary group to ease development
@@ -161,7 +197,7 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
   );
 
   $chgrp = array();
-  // special case: platform. do not handle files dir
+  // Special case: platforms do not handle files dir
   if ($url != 'all') {
     $mkdir["sites/$url/files"]            = 02770;
     $chgrp["sites/$url/files"]            = d('@server_master')->web_group;
@@ -218,23 +254,13 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
     "sites/$url/private/temp"
   );
 
-  foreach ($mkdir as $path => $perm) {
-    if (!is_dir($path)) {
-      provision_file()->mkdir($path)
-        ->succeed('Created <code>@path</code>')
-        ->fail('Could not create <code>@path</code>', 'DRUSH_PERM_ERROR');
-    }
+  $dirs = array(
+    'mkdir' => $mkdir,
+    'chgrp' => $chgrp,
+    'not_recursive' => $not_recursive,
+  );
 
-    provision_file()->chmod($path, $perm, !in_array($path, $not_recursive))
-      ->succeed('Changed permissions of <code>@path</code> to @perm')
-      ->fail('Could not change permissions <code>@path</code> to @perm');
-  }
-  foreach ($chgrp as $path => $group) {
-    provision_file()->chgrp($path, $group, !in_array($path, $not_recursive))
-      ->succeed('Changed group ownership of <code>@path</code> to @gid')
-      ->fail('Could not change group ownership <code>@path</code> to @gid');
-  }
-  chdir($cwd);
+  return $dirs;
 }
 
 /**
