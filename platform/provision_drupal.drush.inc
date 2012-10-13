@@ -137,41 +137,79 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
     }
   }
 
-  // Create the site path where settings.php & drushrc.php will live
-  $path = "sites/$url";
-  $perm = 0755;
-  if (!is_dir($path)) {
-    provision_file()->mkdir($path)
-      ->succeed('Created <code>@path</code>')
-      ->fail('Could not create <code>@path</code>', 'DRUSH_PERM_ERROR');
-    provision_file()->chmod($path, $perm)
-      ->succeed('Changed permissions of <code>@path</code> to @perm')
-      ->fail('Could not change permissions <code>@path</code> to @perm');
+  // Create the site path on the platform for settings.php, drushrc.php and symlinks
+  $platform_site_dir = array('mkdir' => array(
+    "sites/$url" => 0755),
+  );
+  _provision_drupal_create_directories_mkdir($platform_site_dir);
+  _provision_drupal_create_directories_chmod($platform_site_dir);
+
+  // Get a list of the directories and their properties that we'll install
+  $dirs = _provision_drupal_get_site_directories($url);
+
+  // Provide a hook so that we can alter, or otherwise prepare the directories
+  drush_command_invoke_all_ref('provision_drupal_create_directories_alter', $url, $dirs);
+
+  // If we've set an alternate location to install sites to, go there now, but
+  // remember where we started so we can return afterwards.
+  $http_site_symlinks = d()->server->http_site_symlinks;
+  if ($http_site_symlinks != '') {
+    $cwd = getcwd();
+
+    // Create the alternate sites directory
+    $symlink_dir = array('mkdir' => array(
+      $http_site_symlinks => 0755),
+    );
+    _provision_drupal_create_directories_mkdir($symlink_dir);
+    _provision_drupal_create_directories_chmod($symlink_dir);
+
+    chdir(d()->server->http_site_symlinks);
   }
 
-  $cwd = getcwd();
-  chdir(d()->server->clients_path . '/' . d()->client_name);
+  // Create the site's directories
+  _provision_drupal_create_directories_mkdir($dirs);
+  _provision_drupal_create_directories_chmod($dirs);
+  _provision_drupal_create_directories_chgrp($dirs);
 
+  // Return to our original path (likely the platform root)
+  if ($http_site_symlinks != '') {
+    chdir($cwd);
+  }
+}
 
-  $dirs = _provision_drupal_get_directories_to_create($url);
-
+/**
+ * Create directories if they don't already exist
+ */
+function _provision_drupal_create_directories_mkdir ($dirs) {
   foreach ($dirs['mkdir'] as $path => $perm) {
     if (!is_dir($path)) {
       provision_file()->mkdir($path)
         ->succeed('Created <code>@path</code>')
         ->fail('Could not create <code>@path</code>', 'DRUSH_PERM_ERROR');
     }
+  }
+}
 
+/**
+ * Change the permissions on directories
+ */
+function _provision_drupal_create_directories_chmod ($dirs) {
+  foreach ($dirs['mkdir'] as $path => $perm) {
     provision_file()->chmod($path, $perm, !in_array($path, $dirs['not_recursive']))
       ->succeed('Changed permissions of <code>@path</code> to @perm')
       ->fail('Could not change permissions <code>@path</code> to @perm');
   }
+}
+
+/**
+ * Change the group ownership of directories
+ */
+function _provision_drupal_create_directories_chgrp ($dirs) {
   foreach ($dirs['chgrp'] as $path => $group) {
     provision_file()->chgrp($path, $group, !in_array($path, $dirs['not_recursive']))
       ->succeed('Changed group ownership of <code>@path</code> to @gid')
       ->fail('Could not change group ownership <code>@path</code> to @gid');
   }
-  chdir($cwd);
 }
 
 /**
@@ -182,10 +220,10 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
  * @return
  *   An array of arrays listing:
  *     'mkdir' = the directories to create and permissions to apply
- *     'chgrp' = the directories to create and the system group that owns them
+ *     'chgrp' = the directories and the system group that owns each
  *     'not_recursive' = the directories to exclude from recursive operations
  */
-function _provision_drupal_get_directories_to_create($url) {
+function _provision_drupal_get_site_directories($url) {
 
   // These directories will be created and their modes changed
   $mkdir = array(
@@ -199,42 +237,43 @@ function _provision_drupal_get_directories_to_create($url) {
   $chgrp = array();
   // Special case: platforms do not handle files dir
   if ($url != 'all') {
+    $web_group = d('@server_master')->web_group;
     $mkdir["sites/$url/files"]            = 02770;
-    $chgrp["sites/$url/files"]            = d('@server_master')->web_group;
+    $chgrp["sites/$url/files"]            = $web_group;
 
     $mkdir["sites/$url/files/tmp"]        = 02770;
-    $chgrp["sites/$url/files/tmp"]        = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/tmp"]        = $web_group;
 
     $mkdir["sites/$url/files/images"]     = 02770;
-    $chgrp["sites/$url/files/images"]     = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/images"]     = $web_group;
 
     $mkdir["sites/$url/files/pictures"]   = 02770;
-    $chgrp["sites/$url/files/pictures"]   = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/pictures"]   = $web_group;
 
     $mkdir["sites/$url/files/css"]        = 02770;
-    $chgrp["sites/$url/files/css"]        = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/css"]        = $web_group;
 
     $mkdir["sites/$url/files/js"]         = 02770;
-    $chgrp["sites/$url/files/js"]         = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/js"]         = $web_group;
 
     $mkdir["sites/$url/files/ctools"]     = 02770;
-    $chgrp["sites/$url/files/ctools"]     = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/ctools"]     = $web_group;
 
     $mkdir["sites/$url/files/imagecache"] = 02770;
-    $chgrp["sites/$url/files/imagecache"] = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/imagecache"] = $web_group;
 
     $mkdir["sites/$url/files/locations"]  = 02770;
-    $chgrp["sites/$url/files/locations"]  = d('@server_master')->web_group;
+    $chgrp["sites/$url/files/locations"]  = $web_group;
 
     // d7 support
     $mkdir["sites/$url/private"]          = 02770;
-    $chgrp["sites/$url/private"]          = d('@server_master')->web_group;
+    $chgrp["sites/$url/private"]          = $web_group;
 
     $mkdir["sites/$url/private/files"]    = 02770;
-    $chgrp["sites/$url/private/files"]    = d('@server_master')->web_group;
+    $chgrp["sites/$url/private/files"]    = $web_group;
 
     $mkdir["sites/$url/private/temp"]     = 02770;
-    $chgrp["sites/$url/private/temp"]     = d('@server_master')->web_group;
+    $chgrp["sites/$url/private/temp"]     = $web_group;
   }
 
   // These paths should not have recursive operations performed on them.
