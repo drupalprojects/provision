@@ -36,6 +36,7 @@ class Provision_Context_site extends Provision_Context {
     $this->setProperty('aliases', array(), TRUE);
     $this->setProperty('redirection', FALSE);
     $this->setProperty('cron_key', '');
+    $this->setProperty('site_symlinks_path', $this->site_path);
 
     // this can potentially be handled by a Drupal sub class
     $this->setProperty('profile', 'default');
