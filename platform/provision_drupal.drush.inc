@@ -138,11 +138,14 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
   }
 
   // Create the site path on the platform for settings.php, drushrc.php and symlinks
-  $platform_site_dir = array('mkdir' => array(
-    "sites/$url" => 0755),
-  );
-  _provision_drupal_create_directories_mkdir($platform_site_dir);
-  _provision_drupal_create_directories_chmod($platform_site_dir);
+  $platform_site_dir = array(
+    'mkdir' => array(
+      "sites/$url" => 0755
+      ),
+    'not_recursive' => array(),
+    );
+  _provision_drupal_directories_mkdir($platform_site_dir);
+  _provision_drupal_directories_chmod($platform_site_dir);
 
   // Get a list of the directories and their properties that we'll install
   $dirs = _provision_drupal_get_site_directories($url);
@@ -157,19 +160,22 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
     $cwd = getcwd();
 
     // Create the alternate sites directory
-    $symlink_dir = array('mkdir' => array(
-      $http_site_symlinks => 0755),
-    );
-    _provision_drupal_create_directories_mkdir($symlink_dir);
-    _provision_drupal_create_directories_chmod($symlink_dir);
+    $symlink_dir = array(
+      'mkdir' => array(
+        $http_site_symlinks => 0755,
+        ),
+      'not_recursive' => array(),
+      );
+    _provision_drupal_directories_mkdir($symlink_dir);
+    _provision_drupal_directories_chmod($symlink_dir);
 
     chdir(d()->server->http_site_symlinks);
   }
 
   // Create the site's directories
-  _provision_drupal_create_directories_mkdir($dirs);
-  _provision_drupal_create_directories_chmod($dirs);
-  _provision_drupal_create_directories_chgrp($dirs);
+  _provision_drupal_directories_mkdir($dirs);
+  _provision_drupal_directories_chmod($dirs);
+  _provision_drupal_directories_chgrp($dirs);
 
   // Return to our original path (likely the platform root)
   if ($http_site_symlinks != '') {
@@ -180,7 +186,7 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
 /**
  * Create directories if they don't already exist
  */
-function _provision_drupal_create_directories_mkdir ($dirs) {
+function _provision_drupal_directories_mkdir ($dirs) {
   foreach ($dirs['mkdir'] as $path => $perm) {
     if (!is_dir($path)) {
       provision_file()->mkdir($path)
@@ -193,7 +199,7 @@ function _provision_drupal_create_directories_mkdir ($dirs) {
 /**
  * Change the permissions on directories
  */
-function _provision_drupal_create_directories_chmod ($dirs) {
+function _provision_drupal_directories_chmod ($dirs) {
   foreach ($dirs['mkdir'] as $path => $perm) {
     provision_file()->chmod($path, $perm, !in_array($path, $dirs['not_recursive']))
       ->succeed('Changed permissions of <code>@path</code> to @perm')
@@ -204,7 +210,7 @@ function _provision_drupal_create_directories_chmod ($dirs) {
 /**
  * Change the group ownership of directories
  */
-function _provision_drupal_create_directories_chgrp ($dirs) {
+function _provision_drupal_directories_chgrp ($dirs) {
   foreach ($dirs['chgrp'] as $path => $group) {
     provision_file()->chgrp($path, $group, !in_array($path, $dirs['not_recursive']))
       ->succeed('Changed group ownership of <code>@path</code> to @gid')
