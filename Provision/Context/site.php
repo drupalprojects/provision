@@ -27,15 +27,23 @@ class Provision_Context_site extends Provision_Context {
      // we need to set the alias root to the platform root, otherwise drush will cause problems.
     $this->root = $this->platform->root;
 
-    // set this because this path is accessed a lot in the code, especially in config files.
-    $this->site_path = $this->root . '/sites/' . $this->uri;
-
     $this->setProperty('site_enabled', true);
     $this->setProperty('language', 'en');
     $this->setProperty('client_name');
     $this->setProperty('aliases', array(), TRUE);
     $this->setProperty('redirection', FALSE);
     $this->setProperty('cron_key', '');
+
+    // set this because this path is accessed a lot in the code, especially in config files.
+    if (isset($this->server->http_data_dir)) {
+      $data_dir = d()->server->http_data_dir;
+      // We'll need an alter hook here
+      $this->site_path = _provision_drupal_expand_data_dir_tokens($data_dir);
+    }
+    else {
+      // Default platform path for sites
+      $this->site_path = $this->root . '/sites/' . $this->uri;
+    }
 
     // this can potentially be handled by a Drupal sub class
     $this->setProperty('profile', 'default');
