@@ -163,6 +163,6 @@ print '<?php' ?>
   }
 
   # Additional site configuration settings.
-  if (file_exists('<?php print $this->site_path  ?>/local.settings.php')) {
-    include_once('<?php print $this->site_path  ?>/local.settings.php');
+  if (file_exists('<?php print $this->site_data_dir  ?>/local.settings.php')) {
+    include_once('<?php print $this->site_data_dir  ?>/local.settings.php');
   }

@@ -156,10 +156,9 @@ function _provision_drupal_create_site_directories() {
   _provision_drupal_directories_chmod($dirs);
   _provision_drupal_directories_chgrp($dirs);
 
-  // Symlink from the install dir to the platform
-  $platform_root = d()->platform->root;
-  if (!file_exists($platform_root . d()->uri)) {
-    provision_file()->symlink($data_dir, $platform_root . d()->uri)
+  // Symlink from the data dir to the platform
+  if (!file_exists(d()->site_path)) {
+    provision_file()->symlink($data_dir, d()->site_path)
       ->succeed('Created symlink @path to @target')
       ->fail('Could not create symlink @path to @target: @reason');
   }
@@ -273,7 +272,6 @@ function _provision_drupal_get_site_directories() {
 
   // These directories will be created and their modes changed
   $mkdir = array(
-    ""                => 0755,
     # these should be writable by the aegir primary group to ease development
     "themes"          => 02775,
     "modules"         => 02775,
@@ -283,8 +281,14 @@ function _provision_drupal_get_site_directories() {
   $chgrp = array();
   $web_group = d('@server_master')->web_group;
 
-  $mkdir["files"]            = 02770;
-  $chgrp["files"]            = $web_group;
+  $mkdir[""]                 = 0755;
+  $chgrp[""]                 = $web_group;
+
+  $mkdir[".."]               = 0755;
+  $chgrp[".."]               = $web_group;
+
+  $mkdir["../.."]            = 0755;
+  $chgrp["../.."]            = $web_group;
 
   $mkdir["files/tmp"]        = 02770;
   $chgrp["files/tmp"]        = $web_group;
