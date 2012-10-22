@@ -128,50 +128,72 @@ function _provision_drupal_create_settings_file() {
  * Also maintains permissions on existing directories.
  */
 function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
-  if (is_null($url)) {
-    if (d()->type == 'site') {
-      $url = d()->uri;
-    }
-    else {
-      $url = 'all';
-    }
+  // Handle platforms
+  if (is_null($url) && d()->type != 'site') {
+    _provision_drupal_create_platform_directories();
   }
+  else {
+    _provision_drupal_create_site_directories();
+  }
+}
 
+function _provision_drupal_create_site_directories() {
+  // Get the tokenized path where we'll install the site
   $data_dir = d()->server->http_data_dir;
 
   // Get a list of the directories and their properties that we'll install
-  $dirs = _provision_drupal_get_site_directories($url);
+  $dirs = _provision_drupal_get_site_directories();
 
   // Provide a hook so that we can alter, or otherwise prepare the directories
-  drush_command_invoke_all_ref('provision_drupal_create_directories_alter', $url, $data_dir, $dirs);
+  drush_command_invoke_all_ref('provision_drupal_create_directories_alter', $data_dir, $dirs);
 
-  // Expand our tokens
-  //_provision_drupal_expand_data_dir_tokens($dirs);
-
-  // If we've set an alternate location to install sites to, go there now, but
-  // remember where we started so we can return afterwards.
-  if ($data_dir != '') {
-    $cwd = getcwd();
-
-    chdir($data_dir);
-  }
+  // Expand our tokens & make our dir paths absolute
+  _provision_drupal_expand_data_dir_tokens($data_dir);
+  _provision_drupal_make_dir_paths_absolute($dirs, $data_dir);
 
   // Create the site's directories
   _provision_drupal_directories_mkdir($dirs);
   _provision_drupal_directories_chmod($dirs);
   _provision_drupal_directories_chgrp($dirs);
 
-  // Return to our original path (likely the platform root)
-  if ($data_dir != '') {
-    chdir($cwd);
+  // Symlink from the install dir to the platform
+  $platform_root = d()->platform->root;
+  if (!file_exists($platform_root . d()->uri)) {
+    provision_file()->symlink($data_dir, $platform_root . d()->uri)
+      ->succeed('Created symlink @path to @target')
+      ->fail('Could not create symlink @path to @target: @reason');
   }
 
-  // Symlink from the install dir to the platform
-  provision_file()->symlink($data_dir . '/sites/' . d()->uri, 'sites/' . d()->uri)
-    ->succeed('Created symlink @path to @target')
-    ->fail('Could not create symlink @path to @target: @reason');
+}
+
+function _provision_drupal_expand_data_dir_tokens(&$data_dir) {
+  drush_log("Preparing to replace tokens in data directory path: $data_dir");
+  // Replace our tokens
+  $data_dir = strtr($data_dir, array(
+    '[uri]'           => d()->uri,
+    '[platform_root]' => d()->platform->root,
+    '[platform_path]' => d()->server->http_platforms_path,
+    '[client_name]'   => d()->client_name,
+    '[aegir_root]'    => d()->server->aegir_root,
+    '[clients_path]'  => d()->server->clients_path,
+    )
+  );
+  drush_log("Data directory path token replacement resulted in: $data_dir", 'ok');
+  return $data_dir;
+}
 
 
+function _provision_drupal_make_dir_paths_absolute(&$dirs, $data_dir) {
+  foreach ($dirs['mkdir'] as $path => $perm) {
+    unset($dirs['mkdir'][$path]);
+    $dirs['mkdir'][$data_dir . '/' . $path] = $perm;
+  }
+  foreach ($dirs['chgrp'] as $path => $group) {
+    unset($dirs['chgrp'][$path]);
+    $dirs['chgrp'][$data_dir . '/' . $path] = $group;
+  }
+
+  return $dirs;
 }
 
 /**
@@ -215,86 +237,104 @@ function _provision_drupal_directories_chgrp ($dirs) {
   }
 }
 
+function _provision_drupal_create_platform_directories() {
+
+  // These directories will be created and their modes changed
+  $mkdir = array(
+    'sites/all'                 => 0755,
+    # those should be writable by the aegir primary group to ease development
+    'sites/all/themes'          => 02775,
+    'sites/all/modules'         => 02775,
+    'sites/all/libraries'       => 02775, # http://drupal.org/node/496240
+  );
+
+  $dirs = array(
+    'mkdir' => $mkdir,
+    'not_recursive' => 'sites/all',
+  );
+
+  // Create the platform's directories
+  _provision_drupal_directories_mkdir($dirs);
+  _provision_drupal_directories_chmod($dirs);
+  _provision_drupal_directories_chgrp($dirs);
+
+}
+
 /**
  * List the directories for site/platform creation with relevant properties.
  *
- * @param url
- *   The url of the site to check
  * @return
  *   An array of arrays listing:
  *     'mkdir' = the directories to create and permissions to apply
  *     'chgrp' = the directories and the system group that owns each
  *     'not_recursive' = the directories to exclude from recursive operations
  */
-function _provision_drupal_get_site_directories($url) {
+function _provision_drupal_get_site_directories() {
 
   // These directories will be created and their modes changed
   $mkdir = array(
-    "."                          => 0755,
-    "sites/$url"                 => 0755,
-    # those should be writable by the aegir primary group to ease development
-    "sites/$url/themes"          => 02775,
-    "sites/$url/modules"         => 02775,
-    "sites/$url/libraries"       => 02775, # http://drupal.org/node/496240
+    ""                => 0755,
+    # these should be writable by the aegir primary group to ease development
+    "themes"          => 02775,
+    "modules"         => 02775,
+    "libraries"       => 02775, # http://drupal.org/node/496240
   );
 
   $chgrp = array();
-  // Special case: platforms do not handle files dir
-  if ($url != 'all') {
-    $web_group = d('@server_master')->web_group;
-    $mkdir["sites/$url/files"]            = 02770;
-    $chgrp["sites/$url/files"]            = $web_group;
+  $web_group = d('@server_master')->web_group;
 
-    $mkdir["sites/$url/files/tmp"]        = 02770;
-    $chgrp["sites/$url/files/tmp"]        = $web_group;
+  $mkdir["files"]            = 02770;
+  $chgrp["files"]            = $web_group;
 
-    $mkdir["sites/$url/files/images"]     = 02770;
-    $chgrp["sites/$url/files/images"]     = $web_group;
+  $mkdir["files/tmp"]        = 02770;
+  $chgrp["files/tmp"]        = $web_group;
 
-    $mkdir["sites/$url/files/pictures"]   = 02770;
-    $chgrp["sites/$url/files/pictures"]   = $web_group;
+  $mkdir["files/images"]     = 02770;
+  $chgrp["files/images"]     = $web_group;
 
-    $mkdir["sites/$url/files/css"]        = 02770;
-    $chgrp["sites/$url/files/css"]        = $web_group;
+  $mkdir["files/pictures"]   = 02770;
+  $chgrp["files/pictures"]   = $web_group;
 
-    $mkdir["sites/$url/files/js"]         = 02770;
-    $chgrp["sites/$url/files/js"]         = $web_group;
+  $mkdir["files/css"]        = 02770;
+  $chgrp["files/css"]        = $web_group;
 
-    $mkdir["sites/$url/files/ctools"]     = 02770;
-    $chgrp["sites/$url/files/ctools"]     = $web_group;
+  $mkdir["files/js"]         = 02770;
+  $chgrp["files/js"]         = $web_group;
 
-    $mkdir["sites/$url/files/imagecache"] = 02770;
-    $chgrp["sites/$url/files/imagecache"] = $web_group;
+  $mkdir["files/ctools"]     = 02770;
+  $chgrp["files/ctools"]     = $web_group;
 
-    $mkdir["sites/$url/files/locations"]  = 02770;
-    $chgrp["sites/$url/files/locations"]  = $web_group;
+  $mkdir["files/imagecache"] = 02770;
+  $chgrp["files/imagecache"] = $web_group;
 
-    // d7 support
-    $mkdir["sites/$url/private"]          = 02770;
-    $chgrp["sites/$url/private"]          = $web_group;
+  $mkdir["files/locations"]  = 02770;
+  $chgrp["files/locations"]  = $web_group;
 
-    $mkdir["sites/$url/private/files"]    = 02770;
-    $chgrp["sites/$url/private/files"]    = $web_group;
+  // d7 support
+  $mkdir["private"]          = 02770;
+  $chgrp["private"]          = $web_group;
 
-    $mkdir["sites/$url/private/temp"]     = 02770;
-    $chgrp["sites/$url/private/temp"]     = $web_group;
-  }
+  $mkdir["private/files"]    = 02770;
+  $chgrp["private/files"]    = $web_group;
+
+  $mkdir["private/temp"]     = 02770;
+  $chgrp["private/temp"]     = $web_group;
 
   // These paths should not have recursive operations performed on them.
   $not_recursive = array(
-    "sites/$url",
-    "sites/$url/files",
-    "sites/$url/files/tmp",
-    "sites/$url/files/images",
-    "sites/$url/files/pictures",
-    "sites/$url/files/css",
-    "sites/$url/files/js",
-    "sites/$url/files/ctools",
-    "sites/$url/files/imagecache",
-    "sites/$url/files/locations",
-    "sites/$url/private",
-    "sites/$url/private/files",
-    "sites/$url/private/temp"
+    //"sites/$url",
+    "files",
+    "files/tmp",
+    "files/images",
+    "files/pictures",
+    "files/css",
+    "files/js",
+    "files/ctools",
+    "files/imagecache",
+    "files/locations",
+    "private",
+    "private/files",
+    "private/temp"
   );
 
   $dirs = array(
