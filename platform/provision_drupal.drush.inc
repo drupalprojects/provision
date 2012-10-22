@@ -142,7 +142,6 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
     'mkdir' => array(
       "sites/$url" => 0755
       ),
-    'not_recursive' => array(),
     );
   _provision_drupal_directories_mkdir($platform_site_dir);
   _provision_drupal_directories_chmod($platform_site_dir);
@@ -164,7 +163,6 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
       'mkdir' => array(
         $http_site_symlinks => 0755,
         ),
-      'not_recursive' => array(),
       );
     _provision_drupal_directories_mkdir($symlink_dir);
     _provision_drupal_directories_chmod($symlink_dir);
@@ -200,6 +198,9 @@ function _provision_drupal_directories_mkdir ($dirs) {
  * Change the permissions on directories
  */
 function _provision_drupal_directories_chmod ($dirs) {
+  if (!isset($dirs['not_recursive'])) {
+    $dirs['not_recursive'] = array();
+  }
   foreach ($dirs['mkdir'] as $path => $perm) {
     provision_file()->chmod($path, $perm, !in_array($path, $dirs['not_recursive']))
       ->succeed('Changed permissions of <code>@path</code> to @perm')
@@ -211,6 +212,9 @@ function _provision_drupal_directories_chmod ($dirs) {
  * Change the group ownership of directories
  */
 function _provision_drupal_directories_chgrp ($dirs) {
+  if (!isset($dirs['not_recursive'])) {
+    $dirs['not_recursive'] = array();
+  }
   foreach ($dirs['chgrp'] as $path => $group) {
     provision_file()->chgrp($path, $group, !in_array($path, $dirs['not_recursive']))
       ->succeed('Changed group ownership of <code>@path</code> to @gid')
