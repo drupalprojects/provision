@@ -49,7 +49,6 @@ function drush_provision_drupal_provision_install() {
  // Requires at least the database settings to complete.
   provision_prepare_environment();
   _provision_drupal_create_settings_file();
-  _provision_drupal_create_site_symlinks();
 
   provision_save_site_data();
 

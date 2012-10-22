@@ -137,37 +137,23 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
     }
   }
 
-  // Create the site path on the platform for settings.php, drushrc.php and symlinks
-  $platform_site_dir = array(
-    'mkdir' => array(
-      "sites/$url" => 0755
-      ),
-    );
-  _provision_drupal_directories_mkdir($platform_site_dir);
-  _provision_drupal_directories_chmod($platform_site_dir);
+  $data_dir = d()->server->http_data_dir;
 
   // Get a list of the directories and their properties that we'll install
   $dirs = _provision_drupal_get_site_directories($url);
 
   // Provide a hook so that we can alter, or otherwise prepare the directories
-  drush_command_invoke_all_ref('provision_drupal_create_directories_alter', $url, $dirs);
+  drush_command_invoke_all_ref('provision_drupal_create_directories_alter', $url, $data_dir, $dirs);
+
+  // Expand our tokens
+  //_provision_drupal_expand_data_dir_tokens($dirs);
 
   // If we've set an alternate location to install sites to, go there now, but
   // remember where we started so we can return afterwards.
-  $http_site_symlinks = d()->server->http_site_symlinks;
-  if ($http_site_symlinks != '') {
+  if ($data_dir != '') {
     $cwd = getcwd();
 
-    // Create the alternate sites directory
-    $symlink_dir = array(
-      'mkdir' => array(
-        $http_site_symlinks => 0755,
-        ),
-      );
-    _provision_drupal_directories_mkdir($symlink_dir);
-    _provision_drupal_directories_chmod($symlink_dir);
-
-    chdir(d()->server->http_site_symlinks);
+    chdir($data_dir);
   }
 
   // Create the site's directories
@@ -176,9 +162,16 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
   _provision_drupal_directories_chgrp($dirs);
 
   // Return to our original path (likely the platform root)
-  if ($http_site_symlinks != '') {
+  if ($data_dir != '') {
     chdir($cwd);
   }
+
+  // Symlink from the install dir to the platform
+  provision_file()->symlink($data_dir . '/sites/' . d()->uri, 'sites/' . d()->uri)
+    ->succeed('Created symlink @path to @target')
+    ->fail('Could not create symlink @path to @target: @reason');
+
+
 }
 
 /**
@@ -237,6 +230,7 @@ function _provision_drupal_get_site_directories($url) {
 
   // These directories will be created and their modes changed
   $mkdir = array(
+    "."                          => 0755,
     "sites/$url"                 => 0755,
     # those should be writable by the aegir primary group to ease development
     "sites/$url/themes"          => 02775,
@@ -710,27 +704,6 @@ function provision_prepare_environment() {
   // As of Drupal 7 there is no more mysqli type
   if (drush_drupal_major_version() >= 7) {
     $_SERVER['db_type'] = ($_SERVER['db_type'] == 'mysqli') ? 'mysql' : $_SERVER['db_type'];
-  }
-}
-
-/**
- * Create symlinks from the site directory on the platform to the sub-
- * directories in the client's site directory.
- */
-function _provision_drupal_create_site_symlinks() {
-  $sub_dirs = array(
-    'files',
-    'libraries',
-    'modules',
-    'private',
-    'themes',
-  );
-
-  $client_path = d()->server->clients_path . '/' . d()->client_name;
-  foreach ($sub_dirs as $subdir) {
-    provision_file()->symlink($client_path . '/sites/' . d()->uri, d()->site_path . '/' . $sub_dir)
-      ->succeed('Created symlink @path to @target')
-      ->fail('Could not create symlink @path to @target: @reason');
   }
 }
 
