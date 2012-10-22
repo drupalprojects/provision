@@ -8,10 +8,6 @@ class Provision_Service_http_apache extends Provision_Service_http_public {
     return Provision_Service_http_apache::apache_restart_cmd();
   }
 
-  function default_site_symlinks() {
-    return Provision_Service_http_apache::apache_site_symlinks();
-  }
-
   function cloaked_db_creds() {
     return TRUE;
   }
