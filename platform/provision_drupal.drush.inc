@@ -166,19 +166,26 @@ function _provision_drupal_create_site_directories() {
 }
 
 function _provision_drupal_expand_data_dir_tokens(&$data_dir) {
-  drush_log("Preparing to replace tokens in data directory path: $data_dir");
-  // Replace our tokens
-  $data_dir = strtr($data_dir, array(
-    '[uri]'           => d()->uri,
-    '[platform_root]' => d()->platform->root,
-    '[platform_path]' => d()->server->http_platforms_path,
-    '[client_name]'   => d()->client_name,
-    '[aegir_root]'    => d()->server->aegir_root,
-    '[clients_path]'  => d()->server->clients_path,
-    )
-  );
-  drush_log("Data directory path token replacement resulted in: $data_dir", 'ok');
-  return $data_dir;
+  if (d()->server->http_data_dir == '') {
+    drush_log('d()->server->http_data_dir does not appear to be set. Defaulting to d()->site_path instead.', 'warning');
+    $data_dir = d()->site_path;
+    return $data_dir;
+  }
+  else {
+    drush_log("Preparing to replace tokens in data directory path: $data_dir");
+    // Replace our tokens
+    $data_dir = strtr($data_dir, array(
+      '[uri]'           => d()->uri,
+      '[platform_root]' => d()->platform->root,
+      '[platform_path]' => d()->server->http_platforms_path,
+      '[client_name]'   => d()->client_name,
+      '[aegir_root]'    => d()->server->aegir_root,
+      '[clients_path]'  => d()->server->clients_path,
+      )
+    );
+    drush_log("Data directory path token replacement resulted in: $data_dir", 'ok');
+    return $data_dir;
+  }
 }
 
 
