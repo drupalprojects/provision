@@ -285,18 +285,20 @@ function _provision_drupal_get_site_directories() {
     "libraries"       => 02775, # http://drupal.org/node/496240
   );
 
+  if (d()->server->http_data_dir != '') {
+    $mkdir[".."]               = 0755;
+    $chgrp[".."]               = $web_group;
+
+    $mkdir["../.."]            = 0755;
+    $chgrp["../.."]            = $web_group;
+  }
+
   $chgrp = array();
   $web_group = d('@server_master')->web_group;
 
   $mkdir[""]                 = 0755;
   $chgrp[""]                 = $web_group;
 
-/*  $mkdir[".."]               = 0755;
-  $chgrp[".."]               = $web_group;
-
-  $mkdir["../.."]            = 0755;
-  $chgrp["../.."]            = $web_group;
-*/
   $mkdir["files/tmp"]        = 02770;
   $chgrp["files/tmp"]        = $web_group;
 
