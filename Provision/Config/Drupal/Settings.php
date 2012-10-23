@@ -11,7 +11,12 @@ class Provision_Config_Drupal_Settings extends Provision_Config {
   protected $mode = 0440;
 
   function filename() {
-    return $this->site_data_dir . '/settings.php';
+    if ($this->site_data_dir != '') {
+      return $this->site_data_dir . '/settings.php';
+    }
+    else {
+      return $this->site_path . '/settings.php';
+    }
   }
 
   function process() {
