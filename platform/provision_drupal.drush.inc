@@ -284,12 +284,12 @@ function _provision_drupal_get_site_directories() {
   $mkdir[""]                 = 0755;
   $chgrp[""]                 = $web_group;
 
-  $mkdir[".."]               = 0755;
+/*  $mkdir[".."]               = 0755;
   $chgrp[".."]               = $web_group;
 
   $mkdir["../.."]            = 0755;
   $chgrp["../.."]            = $web_group;
-
+*/
   $mkdir["files/tmp"]        = 02770;
   $chgrp["files/tmp"]        = $web_group;
 
