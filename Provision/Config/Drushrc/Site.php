@@ -13,7 +13,7 @@ class Provision_Config_Drushrc_Site extends Provision_Config_Drushrc {
   public $description = 'Site Drush configuration file';
 
   function filename() {
-    if ($this->site_data_dir != '')
+    if ($this->site_data_dir != '') {
       return $this->site_data_dir . '/drushrc.php';
     }
     else {
