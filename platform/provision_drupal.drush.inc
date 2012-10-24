@@ -167,24 +167,46 @@ function _provision_drupal_create_site_directories() {
 
 function _provision_drupal_expand_data_dir_tokens(&$data_dir) {
   if (d()->server->http_data_dir == '') {
-    drush_log('d()->server->http_data_dir does not appear to be set. Defaulting to d()->site_path instead.', 'warning');
     $data_dir = d()->site_path;
+    drush_log(dt('d()->server->http_data_dir does not appear to be set. Using defaulting to d()->site_path (!site_path) for data directory instead.',
+      array('!site_path' => $data_dir)), 'warning');
     return $data_dir;
   }
   else {
-    drush_log("Preparing to replace tokens in data directory path: $data_dir");
-    // Replace our tokens
-    $data_dir = strtr($data_dir, array(
+    $tokens = array(
       '[uri]'           => d()->uri,
       '[platform_root]' => d()->platform->root,
       '[platform_path]' => d()->server->http_platforms_path,
       '[client_name]'   => d()->client_name,
       '[aegir_root]'    => d()->server->aegir_root,
       '[clients_path]'  => d()->server->clients_path,
-      )
     );
-    drush_log("Data directory path token replacement resulted in: $data_dir", 'ok');
-    return $data_dir;
+    // TODO: Hook here?
+    
+    // Check that tokens are resolving
+    foreach ($tokens as $token => $value) {
+      // Only check tokens that are present in our data directory path
+      if (strpos($token, $data_dir) && $value == '') {
+        $data_dir = d()->site_path;
+        drush_log(dt('The token !token was set in the data directory path, but could not be resolved. Using default to d()->site_path (!site_path) for data directory instead.',
+          array('!token' => $token, '!site_path' => $data_dir)), 'warning');
+        return $data_dir;
+      }
+    }
+    if (drush_get_context('DRUSH_VERBOSE') || drush_get_context('DRUSH_SIMULATE')) {
+      drush_log(dt('Preparing to replace tokens in data directory path: !data_dir', array('!data_dir' => $data_dir)));
+    }
+    // Replace our tokens
+    if ($data_dir = strtr($data_dir, $tokens)) {
+      if (drush_get_context('DRUSH_VERBOSE') || drush_get_context('DRUSH_SIMULATE')) {
+        drush_log(dt('Data directory path token replacement resulted in: !data_dir', array('!data_dir' => $data_dir)), 'success');
+      }
+      return $data_dir;
+    }
+    else {
+      drush_log(dt('There was an error during data directory token replacement: !data_dir', array('!data_dir' => $data_dir)), 'error');
+      return FALSE;
+    }
   }
 }
 
