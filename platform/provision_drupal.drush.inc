@@ -306,15 +306,6 @@ function _provision_drupal_get_site_directories() {
     "modules"         => 02775,
     "libraries"       => 02775, # http://drupal.org/node/496240
   );
-
-  if (d()->server->http_data_dir != '') {
-    $mkdir[".."]               = 0755;
-    $chgrp[".."]               = $web_group;
-
-    $mkdir["../.."]            = 0755;
-    $chgrp["../.."]            = $web_group;
-  }
-
   $chgrp = array();
   $web_group = d('@server_master')->web_group;
 
@@ -817,7 +808,7 @@ function provision_reload_config($context, $file = NULL) {
 function _provision_client_create_symlink() {
   if (d()->client_name) {
     $sites_dir = d()->server->clients_path . '/' . d()->client_name;
-    provision_file()->create_dir($sites_dir, dt('Client home directory for @client', array('@client' => d()->client_name)), 0750);
+    provision_file()->create_dir($sites_dir, dt('Client home directory for @client', array('@client' => d()->client_name)), 0751);
     provision_file()->unlink($sites_dir . '/' . d()->uri); // deliberatly ignore errors
     provision_file()->symlink(d()->site_path, $sites_dir . '/' . d()->uri)
       ->succeed('Created symlink @path to @target')
