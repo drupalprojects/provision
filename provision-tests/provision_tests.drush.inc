@@ -82,9 +82,7 @@ function drush_provision_tests_run() {
   }
   drush_provision_tests_install_platform('drupal6', 'drupal6_other');
   drush_provision_tests_install_site('drupal6', 'drupal6-migrate-drupal6-other', 'default');
-  drush_provision_tests_add_module_to_site('views', 'drupal6-migrate-drupal6-other');
   drush_provision_tests_migrate_site('drupal6-migrate-drupal6-other', 'drupal6_other');
-  drush_provision_tests_check_module_exists_on_site('views', 'drupal6-migrate-drupal6-other');
   drush_provision_tests_remove_site('drupal6-migrate-drupal6-other');
   drush_provision_tests_remove_platform('drupal6_other');
   drush_provision_tests_install_platform('drupal7', 'drupal7_other');
@@ -176,27 +174,6 @@ function drush_provision_tests_install_site($platform_name, $site, $profile_name
   drush_invoke_process('@none', 'provision-save', $args, $options);
   provision_backend_invoke("@$site.aegir.example.com", 'provision-install');
   provision_backend_invoke('@hostmaster', 'hosting-task', array("@platform_$platform_name", 'verify'), array('force' => TRUE));
-  drush_provision_tests_run_remaining_tasks();
-}
-
-/**
- * Helper function to add dummy module, theme, library and files to a site.
- */
-function drush_provision_tests_add_module_to_site($module, $site) {
-  drush_log(dt('Installing: module: @module on site: @site.', array('@site' => "$site.aegir.example.com", '@module' => $module)), 'ok');
-  $args = array(
-    $module,
-  );
-  drush_invoke_process("@$site.aegir.example.com", 'dl', $args); //, $options);
-  drush_provision_tests_run_remaining_tasks();
-}
-
-function drush_provision_tests_check_module_exists_on_site($module, $site) {
-  drush_log(dt('Checking that module: @module exists on site: @site.', array('@site' => "$site.aegir.example.com", '@module' => $module)), 'ok');
-  $args = array(
-    $module,
-  );
-  drush_invoke_process("@$site.aegir.example.com", 'en', $args); //, $options);
   drush_provision_tests_run_remaining_tasks();
 }
 
