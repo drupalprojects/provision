@@ -103,6 +103,25 @@ function drush_provision_tests_run() {
   drush_provision_tests_migrate_site('drupal6-upgrade-drupal7', 'drupal7');
   drush_provision_tests_remove_site('drupal6-upgrade-drupal7');
   
+
+  // Change the data directory, create some sites and migrate them
+  drush_provision_tests_change_data_dir('[clients_path]/[client_name]/sites/[uri]');
+  drush_provision_tests_install_platform('drupal6', 'drupal6_data_dir');
+  drush_provision_tests_install_site('drupal6', 'drupal6-data-dir', 'default');
+  drush_provision_tests_dl_module_to_site('token', 'drupal6-data-dir');
+  drush_provision_tests_migrate_site('drupal6-data-dir', 'drupal6_data_dir');
+  drush_provision_tests_en_module_on_site('token', 'drupal6-data-dir');
+  drush_provision_tests_remove_site('drupal6-data-dir');
+  drush_provision_tests_remove_platform('drupal6_data_dir');
+  drush_provision_tests_install_platform('drupal7', 'drupal7_data_dir');
+  drush_provision_tests_install_site('drupal7', 'drupal7-data-dir', 'standard');
+  drush_provision_tests_dl_module_to_site('token', 'drupal7-data-dir');
+  drush_provision_tests_migrate_site('drupal7-data-dir', 'drupal7_data_dir');
+  drush_provision_tests_en_module_on_site('token', 'drupal7-data-dir');
+  drush_provision_tests_remove_site('drupal7-data-dir');
+  drush_provision_tests_remove_platform('drupal7_data_dir');
+  drush_provision_tests_change_data_dir();
+
   // Clean up a little.
   if ($drupal5_tests) {
     drush_provision_tests_remove_platform('drupal5');
@@ -174,6 +193,69 @@ function drush_provision_tests_install_site($platform_name, $site, $profile_name
   drush_invoke_process('@none', 'provision-save', $args, $options);
   provision_backend_invoke("@$site.aegir.example.com", 'provision-install');
   provision_backend_invoke('@hostmaster', 'hosting-task', array("@platform_$platform_name", 'verify'), array('force' => TRUE));
+  drush_provision_tests_run_remaining_tasks();
+}
+
+/**
+ * Helper function to download a module to a site.
+ */
+function drush_provision_tests_dl_module_to_site($module, $site) {
+  drush_log(dt('Downloading module: @module to site: @site.', array('@site' => "$site.aegir.example.com", '@module' => $module)), 'ok');
+  $args = array(
+    $module,
+  );
+  $options = array(
+    // Normally 'dl' in a site context should know to put it in the site-
+    // specific modules directory, but not through provision_backend_invoke()?
+    'destination' => "sites/$site.aegir.example.com/modules",
+  );
+  provision_backend_invoke("@$site.aegir.example.com", 'dl', $args, $options);
+  drush_provision_tests_run_remaining_tasks();
+}
+
+/**
+ * Helper function to enable a module on a site.
+ */
+function drush_provision_tests_en_module_on_site($module, $site) {
+  drush_log(dt('Enabling module: @module on site: @site.', array('@site' => "$site.aegir.example.com", '@module' => $module)), 'ok');
+  $args = array(
+    $module,
+  );
+  provision_backend_invoke("@$site.aegir.example.com", 'en', $args);
+  // Failing 'en' only results in a warning, so we need to set our own error.
+  $log = array_slice(drush_get_log(), 10);
+  foreach ($log as $serial => $entry) {
+    if ($entry['type'] == 'warning' && $entry['message'] == "$module was not found and will not be enabled.") {
+      drush_set_error('DRUSH_FRAMEWORK_ERROR', "Error enabling module: $module on site: $site.");
+    }
+  }
+  drush_provision_tests_run_remaining_tasks();
+}
+
+
+/**
+ * Helper function to change the data directory
+ */
+function drush_provision_tests_change_data_dir($data_dir = '[platform_root]/sites/[uri]') {
+  $aliases = _drush_sitealias_alias_list();
+  $server_master = $aliases['@server_master'];
+  drush_log(dt('Changing site data directory on @host to: @data_dir',array('@data_dir' => $data_dir,'@host' => $server_master['remote_host'])),'ok');
+  $args = array(
+    '@server_master',
+  );
+  $options = array(
+    'context_type' => $server_master['context_type'],
+    'master_url' => $server_master['master_url'],
+    'remote_host' => $server_master['remote_host'],
+    'ip_addresses' => $server_master['ip_addresses'][0],
+    'db_service_type' => $server_master['db_service_type'],
+    'http_service_type' => $server_master['http_service_type'],
+    'http_restart_cmd' => $server_master['http_restart_cmd'],
+    'http_port' => $server_master['http_port'],
+    'http_data_dir' => $data_dir,
+  );
+  drush_invoke_process('@none', 'provision-save', $args, $options);
+  provision_backend_invoke('@hostmaster', 'hosting-task', array('@server_master', 'verify'), array('force' => TRUE));
   drush_provision_tests_run_remaining_tasks();
 }
 
