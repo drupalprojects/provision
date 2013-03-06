@@ -29,7 +29,7 @@ if [ $# -lt 1 -o "$version" = "-h" ]; then
     cat <<EOF 
 not enough arguments
 
-Usage: $0 <new_version> [<old_version>]
+Usage: $0 <new_version>
 EOF
     exit 1
 fi
@@ -77,9 +77,7 @@ echo changing makefile to download tarball
 #sed -i'.tmp' -e'/^projects\[hostmaster\]\[download\]\[type\]/s/=.*$/ = "get"/' \
 #  -e'/^projects\[hostmaster\]\[download\]\[url\]/s#=.*$#= "http://ftp.drupal.org/files/projects/hostmaster-'$major-$version'.tgz"#' \
 #  -e'/^projects\[hostmaster\]\[download\]\[branch\].*/s/\[branch\] *=.*$/[directory_name] = "hostmaster"/' aegir.make && git add aegir.make && rm aegir.make.tmp
-sed -i'.tmp' -e'/^projects\[hostmaster\]\[download\]\[type\]/s/=.*$/= "git"/' \
-  -e'/^projects\[hostmaster\]\[download\]\[url\]/s#=.*$#= "http://git.drupal.org/project/hostmaster.git"#' \
-  -e'/^projects\[hostmaster\]\[download\]\[branch\].*/s/\[branch\] *=.*$/[tag] = "'$major-$version'"/' aegir.make && git add aegir.make && rm aegir.make.tmp
+sed -i'.tmp' -e'/^projects\[hostmaster\]\[download\]\[branch\].*/s/\[branch\] *=.*$/[tag] = "'$major-$version'"/' aegir.make && git add aegir.make && rm aegir.make.tmp
 
 echo changing provision.info version
 sed -i'.tmp' -e"s/version *=.*$/version=$major-$version/" provision.info
@@ -91,7 +89,7 @@ sed -i'.tmp' -e"s/AEGIR_VERSION=.*$/AEGIR_VERSION=\"$major-$version\"/" upgrade.
 echo resulting changes to be committed:
 git diff --cached | cat
 
-if prompt_yes_no "commit changes and tag release? (y/N) "; then
+if prompt_yes_no "commit changes and tag release?"; then
     echo okay, committing...
 else
     echo 'aborting, leaving changes in git staging area'
@@ -111,8 +109,7 @@ git reset --quiet HEAD 'debian/changelog'
 git checkout -- 'debian/changelog'
 git commit
 
-
-if prompt_yes_no "push tags and commits upstream? (y/N) "; then
+if prompt_yes_no "push tags and commits upstream? "; then
     # this makes sure we push the commit *and* the tag
     git push --tags origin HEAD
 fi

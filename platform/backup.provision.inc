@@ -39,6 +39,7 @@ function drush_provision_drupal_provision_backup_validate($backup_file = NULL) {
     $suggested = d()->platform->server->backup_path . '/' . d()->uri . '-' . date("Ymd.His", time()) . '.tar.gz';
 
     // Use format of mysite.com-2008-01-02, if already existing, add number.
+    $count = 0;
     while (is_file($suggested)) {
       $count++;
       $suggested = d()->platform->server->backup_path . '/' . d()->uri . '-' .  date('Ymd.His', time()) . '_' . $count . '.tar.gz';
@@ -87,7 +88,7 @@ function drush_provision_drupal_provision_backup() {
   }
   if (substr($backup_file, -2) == 'gz') {
     // same as above: some do not support -z
-    $command = 'tar cpf - . | gzip --rsyncable -c > %s';
+    $command = 'tar cpf - . | gzip -c > %s';
   } else {
     $command = 'tar cpf %s .';
   }

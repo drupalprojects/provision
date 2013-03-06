@@ -20,7 +20,7 @@ set -e
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
-if [ "$DPKG_DEBUG" = "developer" ] || [ ! -z "$DEBUG" ]; then
+if [ "$DPKG_DEBUG" = "developer" ]; then
     set -x
 fi
 
@@ -34,7 +34,7 @@ case "$1" in
         VERSION=`sed -n '/^version/{s/^.*= *//;p}' /usr/share/drush/commands/provision/provision.info`
 
         FLAGS="--yes"
-        if [ "$DPKG_DEBUG" = "developer" ] || [ ! -z "$DEBUG" ]; then
+        if [ "$DPKG_DEBUG" = "developer" ]; then
             FLAGS="$FLAGS --debug"
         fi
         db_get "aegir/makefile"
@@ -65,9 +65,16 @@ case "$1" in
                 echo "it seems to be the same version as the one we're trying to install, not upgrading"
             else
                 echo "upgrading the frontend from $drupal_root to $NEW_PLATFORM"
+                if su -s /bin/sh aegir -c 'drush @hostmaster pm-list --status=enabled --pipe' | grep -q hosting_queued; then
+                    service hosting-queued stop
+                fi
                 cd "$drupal_root"
                 su -s /bin/sh aegir -c "drush hostmaster-migrate $FLAGS '$site_uri' '$NEW_PLATFORM'"
                 echo "upgrade finished, old platform left in $drupal_root"
+                # restart daemon if enabled
+                if su -s /bin/sh aegir -c 'drush @hostmaster pm-list --status=enabled --pipe' | grep -q hosting_queued; then
+                    service hosting-queued start
+                fi
             fi
         else
             # fresh install
@@ -106,6 +113,10 @@ case "$1" in
   "client_email": "$EMAIL"
 }
 EOF
+            # on new installs, we default to having the daemon enabled
+            echo 'Enabling hosting-queued daemon'
+            su aegir -c 'drush @hostmaster pm-enable hosting-queued'
+            service hosting-queued start
         fi
         rm -f $TEMPFILE
         # this will ensure that this script aborts if the site can't be bootstrapped

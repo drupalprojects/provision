@@ -8,13 +8,13 @@
 	dh $@
 
 override_dh_install:
-	cp -r "$(CURDIR)/db/"  "$(CURDIR)/dns/"  "$(CURDIR)/http/" "$(CURDIR)/aegir.make" "$(CURDIR)/platform/" "$(CURDIR)/Provision/" "$(CURDIR)/Symfony/" "$(CURDIR)"/*.inc "$(CURDIR)"/*.php "$(CURDIR)"/*.info "$(CURDIR)/debian/aegir-provision/usr/share/drush/commands/provision/"
+	cp -r "$(CURDIR)/db/"  "$(CURDIR)/dns/"  "$(CURDIR)/http/" "$(CURDIR)/aegir.make" "$(CURDIR)/platform/" "$(CURDIR)/Provision/" "$(CURDIR)/Symfony/" "$(CURDIR)"/*.inc "$(CURDIR)"/*.php "$(CURDIR)"/*.info "$(CURDIR)/debian/aegir-provision2/usr/share/drush/commands/provision/"
 
 	# We need this nasty hack, because we added a directory.
 	# TODO: this is really lame, there must be a better way to do this?
-	if [ -d "$(CURDIR)/provision-tests" ]; then cp -r "$(CURDIR)/provision-tests/" "$(CURDIR)/debian/aegir-provision/usr/share/drush/commands/provision/"; fi
+	if [ -d "$(CURDIR)/provision-tests" ]; then cp -r "$(CURDIR)/provision-tests/" "$(CURDIR)/debian/aegir-provision2/usr/share/drush/commands/provision/"; fi
 
-	cp "$(CURDIR)/debian/aegir-provision.lintian" "$(CURDIR)/debian/aegir-provision/usr/share/lintian/overrides/aegir-provision"
+	cp "$(CURDIR)/debian/aegir-provision2.lintian" "$(CURDIR)/debian/aegir-provision2/usr/share/lintian/overrides/aegir-provision"
 
 override_dh_installinit:
 	dh_installinit --name=hosting-queued
@@ -27,14 +27,24 @@ KEY?="-kjenkins@$(DOMAIN)"
 jenkins-build-official:
 	git-buildpackage -b --git-upstream-branch=origin/upstream --git-debian-branch=origin/debian --git-ignore-branch -kjenkins@ci.aegirproject.org
 
-version=2.0~$(shell git log -n 1 --oneline | sed 's/ .*$$//')
+# the version from the changelog, add the git hash
+version=$(shell sed -ne 's/^[^(]*(\([^)]*\)).*/\1/;1p' debian/changelog)
+commit=$(shell git log -n 1 --oneline | sed 's/ .*$$//')
+
+# the version we're building with jenkins
+jenkins_version=${version}+${BUILD_NUMBER}.${commit}
+
+# debug for the above
+show-version:
+	@echo ${version}
 
 # this builds a debian package but first updates the branches to follow the latest 2.x branch
 # this assumes you are on a "debian" branch (of course)
 jenkins-build-auto:
-	dch -D unstable -v ${version} "automatic jenkins build ${BUILD_TAG}"
+	dch -D unstable -v ${jenkins_version} "automatic jenkins build ${BUILD_TAG} for commit ${commit}"
 	git commit -m"dummy commit for jenkins ${BUILD_TAG} autobuild" debian/changelog
 	git-buildpackage -b ${KEY}
 
-show-version:
-	@echo ${version}
+# helper to debug the above
+show-jenkins-build-auto:
+	@echo would build version ${jenkins_version} with key ${KEY}

@@ -238,13 +238,15 @@ class Provision_Service extends Provision_ChainedState {
    *
    * This method will fetch the class to instantiate from the internal
    * $this->configs control array.
+   *
+   * @return the return value of unlink(), which is usually the file object
    */
   function delete_config($config, $data = array()) {
-    $this->config($config, $data)->unlink();
+    return $this->config($config, $data)->unlink();
   }
 
   /**
-   * Fetch extra information the service wants to pass to he config file classes.
+   * Fetch extra information the service wants to pass to the config file classes.
    */
   function config_data($config = NULL, $class = NULL) {
     $data = array();

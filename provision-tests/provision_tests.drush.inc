@@ -236,7 +236,6 @@ function drush_provision_tests_en_module_on_site($module, $site) {
   drush_provision_tests_run_remaining_tasks();
 }
 
-
 /**
  * Helper function to change the data directory
  */

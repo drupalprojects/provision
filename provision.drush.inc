@@ -248,7 +248,8 @@ function provision_drush_command() {
       '/path/to/platform' => dt('The platform to migrate the site to.'),
     ),
     'options' => array(
-      'makefile' => dt('The optional makefile to use instead of aegir.')
+      'http_service_type' => dt('Webserver type to configure (default: %webserver)', array('%webserver' => 'apache')),
+      'makefile' => dt('The makefile used to create the hostmaster platform (default: %makefile)', array('%makefile' => dirname(__FILE__). '/aegir.make')),
     ),
   );
 
@@ -275,6 +276,15 @@ function provision_drush_command() {
      'root' => dt('Install the frontend in this directory (default: %home/hostmaster-%version).', array('%home' => drush_server_home(), '%version' => provision_version())),
      'backend-only' => dt('Install just the backend, and not the frontend UI.'),
      'working-copy' => dt('Keep VCS files when building the hostmaster platform using Drush make.')
+     ),
+  );
+
+  $items['hostmaster-uninstall'] = array(
+    'description' => dt('Uninstall the Hostmaster frontend.'),
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_SITE,
+    'options' => array
+    (
+     'all' => dt('Destroy *ALL* sites managed by the Aegir frontend'),
      ),
   );
 
