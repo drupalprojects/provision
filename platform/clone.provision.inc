@@ -46,6 +46,7 @@ function drush_provision_drupal_provision_clone($new_uri, $platform = null) {
   $options['root'] = d($options['platform'])->root;
   $options['aliases'] = array();
   $options['redirection'] = 0;
+  $options['subfolder_path'] = '';
 
   // XXX: right now we just drop SSL configuration when cloning, because
   // we do not check if the site name change is compatible with the
