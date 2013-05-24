@@ -4,8 +4,7 @@
  * @file
  *   The subfolder provision service.
  */
-include_once('/var/aegir/.drush/provision/Provision/ChainedState.php');
-include_once('/var/aegir/.drush/provision/Provision/Service.php');
+
 /**
  * Expose the service type this extension defines to provision.
  *
@@ -13,18 +12,28 @@ include_once('/var/aegir/.drush/provision/Provision/Service.php');
  *   An array with the service type the key, and the default implementation the value.
  */
 function subfolder_provision_services() {
+  subfolder_provision_register_autoload();
   return array('subfolder' => NULL);
 }
 
 /**
- * The subfolder service base class.
+ * Implements hook_drush_init().
  */
-class Provision_Service_subfolder extends Provision_Service {
-  public $service = 'subfolder';
+function subfolder_drush_init() {
+  subfolder_provision_register_autoload();
+}
 
-  # Add the subfolder_path property to the site context.
-  static function subscribe_site($context) {
-    $context->setProperty('subfolder_path');
+/**
+ * Register our directory as a place to find Provision classes.
+ *
+ * This allows Provision to autoload our classes, so that we don't need to
+ * specifically include the files before we use the class.
+ */
+function subfolder_provision_register_autoload() {
+  static $loaded = FALSE;
+  if (!$loaded) {
+    $loaded = TRUE;
+    provision_autoload_register_prefix('Provision_', dirname(__FILE__));
   }
 }
 
