@@ -4,7 +4,8 @@
  * @file
  *   The subfolder provision service.
  */
-
+include_once('/var/aegir/.drush/provision/Provision/ChainedState.php');
+include_once('/var/aegir/.drush/provision/Provision/Service.php');
 /**
  * Expose the service type this extension defines to provision.
  *
@@ -18,7 +19,7 @@ function subfolder_provision_services() {
 /**
  * The subfolder service base class.
  */
-class provisionService_subfolder extends provisionService {
+class Provision_Service_subfolder extends Provision_Service {
   public $service = 'subfolder';
 
   # Add the subfolder_path property to the site context.
