@@ -52,6 +52,7 @@ class Provision_Service_dns extends Provision_Service {
 
     if (!is_null($this->application_name)) {
       $app_dir = "{$this->server->config_path}/{$this->application_name}";
+      $this->server->dns_app_path = $app_dir;
       $this->server->dns_zoned_path = "{$app_dir}/zone.d";
       $this->server->dns_hostd_path = "{$app_dir}/host.d";
     }
@@ -104,6 +105,11 @@ class Provision_Service_dns extends Provision_Service {
     provision_file()->create_dir($this->server->dns_data_path, dt("DNS data store"), 0700);
 
     if (!is_null($this->application_name)) {
+      // Ensure that the base DNS configuration folder is at least permissive
+      // for users other than the owner, sub folders and files can further
+      // restrict access normally.
+      provision_file()->create_dir($this->server->dns_app_path, dt("DNS pre-configuration"), 0711);
+
       provision_file()->create_dir($this->server->dns_zoned_path, dt("DNS zone configuration"), 0755);
       $this->sync($this->server->dns_zoned_path, array(
         'exclude' => $this->server->dns_zoned_path . '/*',  // Make sure remote directory is created
@@ -130,7 +136,13 @@ class Provision_Service_dns extends Provision_Service {
     }
 
     if ($config == 'host') {
-      $data['site_ip_addresses'] = drush_get_option('site_ip_addresses', array(), 'site');
+      // get the IP explicitely allocate to this site
+      $ips = drush_get_option('ip_address', array(), 'site');
+      // .. or the server IPs if none is allocated
+      if (count($ips) < 1) {
+        $ips = $this->server->ip_addresses;
+      }
+      $data['ip_address'] = $ips;
     }
 
     return $data;
@@ -238,7 +250,7 @@ class Provision_Service_dns extends Provision_Service {
     return $status;
   }
 
-    /**
+  /**
    * Create a host in DNS.
    *
    * This can do a lot of things, create a zonefile, add a record to a
@@ -264,16 +276,11 @@ class Provision_Service_dns extends Provision_Service {
       return drush_set_error('DRUSH_DNS_NO_ZONE', "Could not determine the zone to create");
     }
 
-    $ips = drush_get_option('site_ip_addresses', array(), 'site');
+    $ips = drush_get_option('ip_address', array(), 'site');
 
     if (!$ips && count($ips) < 1) {
       drush_log(dt("no IP found for server, trying loopback"));
       $ips = array('127.0.0.1');
-    }
-
-    // XXX: kill me?
-    if (!is_array($ips)) {
-      $ips = array($ips); // backward compatibility?
     }
 
     $this->config('zone', $zone)->record_set($sub, array('A' => $ips));

@@ -19,19 +19,6 @@ class Provision_Service_http_public extends Provision_Service_http {
 
     $data['http_port'] = $this->server->http_port;
 
-    // We assign this generic catch all for standard http.
-    // The SSL based services will override this with the
-    // correct ip address.
-    if (sizeof($this->server->ip_addresses)) {
-      // Use the first IP address for all standard virtual hosts.
-      $data['ip_address'] = $this->server->ip_addresses[0];
-    }
-    else {
-      // If no external ip addresses are defined, we fall back on *:port
-      // There will be no SSL , so that's fine.
-      $data['ip_address'] = '*';
-    }
-
     // TODO: move away from drush_get_context entirely.
     if ($config == 'site') {
 
@@ -62,6 +49,7 @@ class Provision_Service_http_public extends Provision_Service_http {
 
     if (!is_null($this->application_name)) {
       $app_dir = "{$this->server->config_path}/{$this->application_name}";
+      $this->server->http_app_path = $app_dir;
       $this->server->http_pred_path = "{$app_dir}/pre.d";
       $this->server->http_postd_path = "{$app_dir}/post.d";
       $this->server->http_platformd_path = "{$app_dir}/platform.d";
@@ -73,15 +61,20 @@ class Provision_Service_http_public extends Provision_Service_http {
 
   static function option_documentation() {
     return array(
-      '--web_group' => 'server with http: OS group for permissions; working default will be attempted',
-      '--web_disable_url' => 'server with http: URL disabled sites are redirected to; default {master_url}/hosting/disabled',
-      '--web_maintenance_url' => 'server with http: URL maintenance sites are redirected to; default {master_url}/hosting/maintenance',
+      'web_group' => 'server with http: OS group for permissions; working default will be attempted',
+      'web_disable_url' => 'server with http: URL disabled sites are redirected to; default {master_url}/hosting/disabled',
+      'web_maintenance_url' => 'server with http: URL maintenance sites are redirected to; default {master_url}/hosting/maintenance',
     );
   }
 
 
   function verify_server_cmd() {
     if (!is_null($this->application_name)) {
+      // Ensure that the base apache configuration folder is at least permissive
+      // for users other than the owner, sub folders and files can further
+      // restrict access normally.
+      provision_file()->create_dir($this->server->http_app_path, dt("Webserver custom pre-configuration"), 0711);
+
       provision_file()->create_dir($this->server->http_pred_path, dt("Webserver custom pre-configuration"), 0700);
       $this->sync($this->server->http_pred_path);
       provision_file()->create_dir($this->server->http_postd_path, dt("Webserver custom post-configuration"), 0700);
@@ -95,11 +88,6 @@ class Provision_Service_http_public extends Provision_Service_http {
       provision_file()->create_dir($this->server->http_vhostd_path , dt("Webserver virtual host configuration"), 0700);
       $this->sync($this->server->http_vhostd_path, array(
         'exclude' => $this->server->http_vhostd_path . '/*',  // Make sure remote directory is created
-      ));
-
-      provision_file()->create_dir($this->server->http_platforms_path, dt("Platforms"), 0755);
-      $this->sync($this->server->http_platforms_path, array(
-        'exclude' => $this->server->http_platforms_path . '/*',  // Make sure remote directory is created
       ));
     } 
 

@@ -20,7 +20,7 @@ set -e
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
-if [ "$DPKG_DEBUG" = "developer" ] || [ ! -z "$DEBUG" ]; then
+if [ "$DPKG_DEBUG" = "developer" ]; then
     set -x
 fi
 
@@ -40,22 +40,13 @@ case "$1" in
         adduser --quiet aegir www-data
 
         if [ -d /etc/sudoers.d ]; then
-            ucf --debconf-ok /usr/share/doc/aegir-provision/examples/example.sudoers /etc/sudoers.d/aegir
+            ucf --debconf-ok /usr/share/doc/aegir-provision2/examples/example.sudoers /etc/sudoers.d/aegir
             ucfr aegir-provision /etc/sudoers.d/aegir
             chmod 440 /etc/sudoers.d/aegir
         else
             echo "running an older version of sudo"
-            echo "copy content of /usr/share/doc/aegir-provision/examples/example.sudoers into /etc/sudoers for aegir to run properly"
+            echo "copy content of /usr/share/doc/aegir-provision2/examples/example.sudoers into /etc/sudoers for aegir to run properly"
         fi
-
-        # fix permissions on installed directories
-        chown aegir:aegir "$VARLIB" "$VARLIB/config"
-        # make sure we have apache configs settled in, for remote headless aegir servers
-        touch $VARLIB/config/apache.conf
-        chown aegir:aegir "$VARLIB/config/apache.conf"
-        ln -sf $VARLIB/config/apache.conf /etc/apache2/conf.d/aegir.conf
-        a2enmod ssl rewrite
-        apache2ctl graceful
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

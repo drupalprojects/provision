@@ -94,13 +94,67 @@ function drush_provision_drupal_provision_install_backend() {
 /**
  * Sync the current Drupal platform and, if applicable, site. Call after
  * finishing operations that affect the filesystem.
+ *
+ * @param boolean $override_slave_authority
+ *    Overwrite e.g. the files directory on the slave.
+ *    Useful when the master server has donw file operations, such as restoring a backup.
  */
-function provision_drupal_sync_site() {
+function provision_drupal_push_site($override_slave_authority = FALSE) {
+
+  provision_file()->create_dir(d()->server->http_platforms_path, dt("Platforms"), 0755);
+  d()->server->sync(d()->server->http_platforms_path, array(
+    'exclude' => d()->server->http_platforms_path . '/*',  // Make sure remote directory is created
+  ));
+
+  // Sync the platform
   d()->service('http')->sync(d()->root, array('exclude-sites' => TRUE));
+
   if (d()->type === 'site') {
+    $options = array();
+    if ($override_slave_authority) {
+      $exclude = NULL;
+    }
+    else {
+      $exclude = 'files/*' . PATH_SEPARATOR . 'private/*';
+    }
+
+    // Store the current exclude-path option
+    $old_exclude = NULL;
+    if(!is_null($exclude)) {
+      $old_exclude = drush_get_option('exclude-paths');
+      drush_set_option('exclude-paths', $exclude);
+    }
+
     // Sync all filesystem changes to the remote server.
-    d()->service('http')->sync(d()->site_path, array('no-delete' => TRUE));
+    d()->service('http')->sync(d()->site_path, $options);
+
+    // Reset the exclude-path option
+    if(!is_null($exclude)) {
+      if(empty($old_exclude)) {
+        drush_unset_option('exclude-paths');
+      } else {
+        drush_set_option('exclude-paths', $old_exclude);
+      }
+    }
   }
+}
+
+/**
+ * Sync the current Drupal site BACK from a slave. Call before
+ * running operations that need files where the slave is authoritative.
+ *
+ * E.g. before a backup is made.
+ */
+function provision_drupal_fetch_site() {
+
+  // synch filesystem changes back from the remote server.
+  d()->service('http')->fetch(d()->site_path . '/files/');
+  d()->service('http')->fetch(d()->site_path . '/private/');
+  d()->service('http')->fetch(d()->site_path . '/modules/');
+  d()->service('http')->fetch(d()->site_path . '/themes/');
+  d()->service('http')->fetch(d()->site_path . '/libraries/');
+  // Questionable... who is authoritive?
+  d()->service('http')->fetch(d()->site_path . '/local.settings.php');
 }
 
 /**
@@ -115,7 +169,6 @@ function provision_drupal_sync_site() {
 function _provision_drupal_create_settings_file() {
   $config = new Provision_Config_Drupal_Settings(d()->name, drush_get_context('site'));
   $config->write();
-  provision_drupal_sync_site();
 }
 
 /**
@@ -199,6 +252,10 @@ function _provision_drupal_create_directories($url = NULL, $profile = NULL) {
     "sites/$url/private/temp"
   );
 
+  // Allow other commands to add or alter the directories to be created.
+  drush_command_invoke_all_ref('provision_drupal_create_directories_alter', $mkdir, $url);
+  drush_command_invoke_all_ref('provision_drupal_chgrp_directories_alter', $chgrp, $url);
+
   foreach ($mkdir as $path => $perm) {
     if (!is_dir($path)) {
       provision_file()->mkdir($path)
@@ -257,6 +314,10 @@ function _provision_find_profiles() {
     $info_file = "./profiles/$name/$name.info";
     if (file_exists($info_file)) {
       $profile->info = provision_parse_info_file($info_file);
+      // Skip hidden profiles
+      if (isset($profile->info['hidden']) && $profile->info['hidden'] == 1) {
+        continue;
+      }
     }
 
     require_once($profile->filename);
@@ -293,6 +354,7 @@ function _provision_find_profiles() {
 }
 
 function provision_drupal_find_sites() {
+  $sites = array();
   if ($dir = opendir("./sites")) {
     while (FALSE !== ($subdir = readdir($dir))) {
       // skip internal directory pointers
@@ -374,7 +436,6 @@ function _provision_drupal_maintain_aliases() {
     }
     else {
       _provision_drupal_delete_aliases();
-
       if (!d()->redirection) {
         foreach (d()->aliases as $alias) {
           if ($alias = trim($alias)) {
@@ -403,7 +464,6 @@ function _provision_drupal_delete_aliases() {
     }
     else {
       $aliases = provision_drupal_find_aliases();
-
       foreach ($aliases as $alias) {
         $path = d()->root . '/sites/' . $alias;
         provision_file()->unlink($path)
@@ -494,13 +554,17 @@ function provision_drupal_system_map() {
   $packages['profiles'][$profile]->status = 1;
 
   foreach (_provision_system_query("module") as $module) {
-    $frags = explode("/", $module->filename);
-    // ignore site-specific modules
-    if ($frags[0] == 'sites' && $frags[1] != 'all') {
-      continue;
-    }
     $info_file = sprintf("%s/%s.info", dirname($module->filename), $module->name);
     $module->info = provision_parse_info_file($info_file);
+    // Skip hidden modules
+    if (isset($module->info['hidden']) && $module->info['hidden'] == 1) {
+      continue;
+    }
+    $frags = explode("/", $module->filename);
+    // flag site-specific modules
+    if ($frags[0] == 'sites' && $frags[1] != 'all') {
+      $module->platform = -1;
+    }
 
     _provision_cvs_deploy($module);
     $module->filename = realpath($module->filename);
@@ -515,9 +579,9 @@ function provision_drupal_system_map() {
   // XXX: mostly a copy-paste from above
   foreach (_provision_system_query("theme") as $theme) {
     $frags = explode("/", $theme->filename);
-    // ignore site-specific themes
+    // flag site-specific themes
     if ($frags[0] == 'sites' && $frags[1] != 'all') {
-      continue;
+      $theme->platform = -1;
     }
     $info_file = sprintf("%s/%s.info", dirname($theme->filename), $theme->name);
     $theme->info = provision_parse_info_file($info_file);
@@ -568,6 +632,13 @@ function _provision_drupal_find_modules($scope, $key = '') {
     $files = array_merge($files, drush_scan_directory($path, "/\.module$/", array('.', '..', 'CVS', '.svn'), 0, TRUE, 'name'));
   }
   foreach ($files as $name => $info) {
+    $info_file = sprintf("%s/%s.info", dirname($info->filename), $name);
+    $files[$name]->info = provision_parse_info_file($info_file);
+    // Skip hidden modules
+    if (isset($files[$name]->info['hidden']) && $files[$name]->info['hidden'] != FALSE) {
+      unset($files[$name]);
+      continue;
+    }
     $install_file = sprintf("%s/%s.install", dirname($info->filename), $name);
     $schema_version = 0;
     if (file_exists($install_file)) {
@@ -581,8 +652,6 @@ function _provision_drupal_find_modules($scope, $key = '') {
         $schema_version = max($function_matches[2]);
       }
     }
-    $info_file = sprintf("%s/%s.info", dirname($info->filename), $name);
-    $files[$name]->info = provision_parse_info_file($info_file);
     $files[$name]->schema_version = $schema_version;
     _provision_cvs_deploy($files[$name]);
   }
@@ -641,6 +710,7 @@ function provision_reload_config($context, $file = NULL) {
   if (file_exists($file)) {
     drush_log("Reloading $context drushrc.php from $file");
     include($file);
+    // $options will be defined by the config file included above.
     if (sizeof($options)) {
       $options = array_merge(drush_get_context($context, array()), $options);
       drush_set_context($context, $options);
@@ -662,10 +732,41 @@ function _provision_client_create_symlink() {
   if (d()->client_name) {
     $sites_dir = d()->server->clients_path . '/' . d()->client_name;
     provision_file()->create_dir($sites_dir, dt('Client home directory for @client', array('@client' => d()->client_name)), 0750);
-    provision_file()->unlink($sites_dir . '/' . d()->uri); // deliberatly ignore errors
+    _provision_client_delete_old_symlink();
     provision_file()->symlink(d()->site_path, $sites_dir . '/' . d()->uri)
       ->succeed('Created symlink @path to @target')
       ->fail('Could not create symlink @path to @target: @reason');
+  }
+}
+
+/**
+ * Delete dangling symlinks for this site.
+ *
+ * This is a crude implementation, as we do not have the old client name so we
+ * need to iterate over the directories. We only remove the first entry we
+ * find to save some I/O.
+ */
+function _provision_client_delete_old_symlink() {
+  $previous = d()->server->clients_path . '/' . d()->client_name . '/' . d()->uri;
+  // this is necessary because unlink doesn't fail on missing files (!)
+  $found = (file_exists($previous) || is_link($previous));
+  provision_file()->unlink($previous);
+  if (!$found) {
+    drush_log(dt("couldn't find previous client symlink, iterating through all sites"));
+    // only iterate if the symlink location changed
+    if ($dh = @opendir(d()->server->clients_path)) {
+      while (($file = readdir($dh)) !== false) {
+        if ($file != '.' && $file != '..') {
+          $path = d()->server->clients_path . '/' . $file . '/' . d()->uri;
+          if (file_exists($path) || is_link($path)) {
+            provision_file()->unlink($path);
+            drush_log(dt("removed previous symlink in @path", array("@path" => $path)), 'success');
+            break; // found it
+          }
+        }
+      }
+      closedir($dh);
+    }
   }
 }
 

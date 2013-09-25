@@ -19,6 +19,12 @@ function drush_provision_drupal_pre_provision_delete($backup_file = NULL) {
 function drush_provision_drupal_provision_delete() {
   if (d()->type === 'site') {
     drush_bootstrap(DRUSH_BOOTSTRAP_DRUPAL_ROOT);
+
+    drush_invoke_process('@none', 'provision-save', array(d()->name), array('delete' => TRUE));
+
+    // Do not automatically save the drushrc at the end of the command.
+    drush_set_option('provision_save_config', false);
+
     _provision_recursive_delete(d()->site_path);
     // we remove the aliases even if redirection is enabled as a precaution
     // if redirection is enabled, keep silent about errors
@@ -27,7 +33,7 @@ function drush_provision_drupal_provision_delete() {
     // Remove the symlink in the clients directory.
     _provision_client_delete_symlink();
 
-    provision_drupal_sync_site();
+    provision_drupal_push_site($override_slave_authority = TRUE);
   }
   elseif (d()->type === 'platform') {
     if (!drush_get_option('force', FALSE) && drush_bootstrap(DRUSH_BOOTSTRAP_DRUPAL_ROOT) && provision_drupal_find_sites()) {

@@ -31,14 +31,6 @@ function provision_tests_drush_command() {
  * Drush command to run the provision tests.
  */
 function drush_provision_tests_run() {
-  if (version_compare(PHP_VERSION, '5.3.0', '<')) {
-    $drupal5_tests = TRUE;
-  }
-  else {
-    $drupal5_tests = FALSE;
-    drush_log(dt('Please note that because you are running PHP 5.3 or greater, you cannot test installing Drupal 5 on this machine.'), 'warning');
-  }
-
   if (!drush_confirm(dt('This command should only be run on a clean Aegir install, and data may be lost! Do you want to continue?'))) {
     return drush_user_abort();
   }
@@ -47,66 +39,45 @@ function drush_provision_tests_run() {
   $queue_status_initial = variable_get('hosting_queue_tasks_enabled', '0');
   variable_set('hosting_queue_tasks_enabled', '0');
 
-  if ($drupal5_tests) {
-    drush_provision_tests_install_platform('drupal5');
-  }
   drush_provision_tests_install_platform('drupal6');
   drush_provision_tests_install_platform('drupal7');
   drush_provision_tests_install_platform('openatrium');
 
   // Install some sites.
-  if ($drupal5_tests) {
-    drush_provision_tests_install_site('drupal5', 'drupal5-default', 'default');
-  }
   drush_provision_tests_install_site('drupal6', 'drupal6-default', 'default');
   drush_provision_tests_install_site('drupal7', 'drupal7-standard', 'standard');
   drush_provision_tests_install_site('drupal7', 'drupal7-minimal', 'minimal');
   drush_provision_tests_install_site('openatrium', 'openatrium-openatrium', 'openatrium');
 
   // Remove the sites.
-  if ($drupal5_tests) {
-    drush_provision_tests_remove_site('drupal5-default', 'default');
-  }
   drush_provision_tests_remove_site('drupal6-default');
   drush_provision_tests_remove_site('drupal7-standard');
   drush_provision_tests_remove_site('drupal7-minimal');
   drush_provision_tests_remove_site('openatrium-openatrium');
 
   // Create some sites and migrate them.
-  if ($drupal5_tests) {
-    drush_provision_tests_install_platform('drupal5', 'drupal5_other');
-    drush_provision_tests_install_site('drupal5', 'drupal5-migrate-drupal5-other', 'default');
-    drush_provision_tests_migrate_site('drupal5-migrate-drupal5-other', 'drupal5_other');
-    drush_provision_tests_remove_site('drupal5-migrate-drupal5-other');
-    drush_provision_tests_remove_platform('drupal5_other');
-  }
   drush_provision_tests_install_platform('drupal6', 'drupal6_other');
   drush_provision_tests_install_site('drupal6', 'drupal6-migrate-drupal6-other', 'default');
+  drush_provision_tests_dl_module_to_site('token', 'drupal6-migrate-drupal6-other');
   drush_provision_tests_migrate_site('drupal6-migrate-drupal6-other', 'drupal6_other');
+  drush_provision_tests_en_module_on_site('token', 'drupal6-migrate-drupal6-other');
   drush_provision_tests_remove_site('drupal6-migrate-drupal6-other');
   drush_provision_tests_remove_platform('drupal6_other');
   drush_provision_tests_install_platform('drupal7', 'drupal7_other');
   drush_provision_tests_install_site('drupal7', 'drupal7-migrate-drupal7-other', 'standard');
+  drush_provision_tests_dl_module_to_site('token', 'drupal7-migrate-drupal7-other');
   drush_provision_tests_migrate_site('drupal7-migrate-drupal7-other', 'drupal7_other');
+  drush_provision_tests_en_module_on_site('token', 'drupal7-migrate-drupal7-other');
   drush_provision_tests_remove_site('drupal7-migrate-drupal7-other');
   drush_provision_tests_remove_platform('drupal7_other');
 
 
   // Create some sites, and upgrade them
-  if ($drupal5_tests) {
-    drush_provision_tests_install_site('drupal5', 'drupal5-upgrade-drupal7', 'default');
-    drush_provision_tests_migrate_site('drupal5-upgrade-drupal7', 'drupal6');
-    drush_provision_tests_migrate_site('drupal5-upgrade-drupal7', 'drupal7');
-    drush_provision_tests_remove_site('drupal5-upgrade-drupal7');
-  }
   drush_provision_tests_install_site('drupal6', 'drupal6-upgrade-drupal7', 'default');
   drush_provision_tests_migrate_site('drupal6-upgrade-drupal7', 'drupal7');
   drush_provision_tests_remove_site('drupal6-upgrade-drupal7');
 
   // Clean up a little.
-  if ($drupal5_tests) {
-    drush_provision_tests_remove_platform('drupal5');
-  }
   drush_provision_tests_remove_platform('drupal6');
   drush_provision_tests_remove_platform('drupal7');
   drush_provision_tests_remove_platform('openatrium');
@@ -133,13 +104,15 @@ function drush_provision_tests_install_platform($platform_name, $platform_alias 
     PROVISION_TESTS_BUILDS_REPO . "/$platform_name.build",
     "/var/aegir/platforms/$platform_alias"
   );
-  drush_backend_invoke('make', $args);
+  drush_invoke_process('@none', 'make', $args);
   $args = array(
-    'root' => "/var/aegir/platforms/$platform_alias",
     "@platform_$platform_alias",
+  );
+  $options = array(
+    'root' => "/var/aegir/platforms/$platform_alias",
     'context_type' => 'platform',
   );
-  drush_backend_invoke('provision-save', $args);
+  drush_invoke_process('@none', 'provision-save', $args, $options);
   provision_backend_invoke('@hostmaster', 'hosting-import', array("@platform_$platform_alias",));
   drush_provision_tests_run_remaining_tasks();
 }
@@ -159,17 +132,55 @@ function drush_provision_tests_remove_platform($platform_name) {
 function drush_provision_tests_install_site($platform_name, $site, $profile_name) {
   drush_log(dt('Installing: @site on platform: @platform with profile: @profile.', array('@site' => "$site.aegir.example.com", '@platform' => $platform_name, '@profile' => $profile_name)), 'ok');
   $args = array(
-    'uri' => "$site.aegir.example.com",
     "@$site.aegir.example.com",
+  );
+  $options = array(
+    'uri' => "$site.aegir.example.com",
     'context_type' => 'site',
     'platform' => "@platform_$platform_name",
     'profile' => $profile_name,
     'db_server' => '@server_localhost',
     'root' => "/var/aegir/platforms/$platform_name",
   );
-  drush_backend_invoke('provision-save', $args);
+  drush_invoke_process('@none', 'provision-save', $args, $options);
   provision_backend_invoke("@$site.aegir.example.com", 'provision-install');
   provision_backend_invoke('@hostmaster', 'hosting-task', array("@platform_$platform_name", 'verify'), array('force' => TRUE));
+  drush_provision_tests_run_remaining_tasks();
+}
+
+/**
+ * Helper function to download a module to a site.
+ */
+function drush_provision_tests_dl_module_to_site($module, $site) {
+  drush_log(dt('Downloading module: @module to site: @site.', array('@site' => "$site.aegir.example.com", '@module' => $module)), 'ok');
+  $args = array(
+    $module,
+  );
+  $options = array(
+    // Normally 'dl' in a site context should know to put it in the site-
+    // specific modules directory, but not through provision_backend_invoke()?
+    'destination' => "sites/$site.aegir.example.com/modules",
+  );
+  provision_backend_invoke("@$site.aegir.example.com", 'dl', $args, $options);
+  drush_provision_tests_run_remaining_tasks();
+}
+
+/**
+ * Helper function to enable a module on a site.
+ */
+function drush_provision_tests_en_module_on_site($module, $site) {
+  drush_log(dt('Enabling module: @module on site: @site.', array('@site' => "$site.aegir.example.com", '@module' => $module)), 'ok');
+  $args = array(
+    $module,
+  );
+  provision_backend_invoke("@$site.aegir.example.com", 'en', $args);
+  // Failing 'en' only results in a warning, so we need to set our own error.
+  $log = array_slice(drush_get_log(), 10);
+  foreach ($log as $serial => $entry) {
+    if ($entry['type'] == 'warning' && $entry['message'] == "$module was not found and will not be enabled.") {
+      drush_set_error('DRUSH_FRAMEWORK_ERROR', "Error enabling module: $module on site: $site.");
+    }
+  }
   drush_provision_tests_run_remaining_tasks();
 }
 

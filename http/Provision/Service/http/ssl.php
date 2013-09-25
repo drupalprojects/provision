@@ -38,6 +38,7 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
 
     $this->context->setProperty('ssl_enabled', 0);
     $this->context->setProperty('ssl_key', NULL);
+    $this->context->setProperty('ip_address', '*');
   }
 
 
@@ -46,7 +47,7 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
     $data['http_ssl_port'] = $this->server->http_ssl_port;
 
     if ($config == 'site' && $this->context->ssl_enabled) {
-
+      $data['ip_address'] = $this->context->ip_address;
       if ($this->context->ssl_enabled == 2) {
         $data['ssl_redirection'] = TRUE;
         $data['redirect_url'] = "https://{$this->context->uri}";
@@ -55,23 +56,8 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
       if ($ssl_key = $this->context->ssl_key) {
         // Retrieve the paths to the cert and key files.
         // they are generated if not found.
-
         $certs = $this->get_certificates($ssl_key);
         $data = array_merge($data, $certs);
-
-        // assign ip address based on ssl_key
-        $ip = Provision_Service_http_ssl::assign_certificate_ip($ssl_key, $this->server);
-
-        if (!$ip) {
-          drush_set_error("SSL_IP_FAILURE", dt("There are no more IP addresses available on %server for the %ssl_key certificate.", array(
-            "%server" => $this->server->remote_host,
-            "%ssl_key" => $ssl_key,
-          )));
-        }
-        else {
-          $data['ip_address'] = $ip;
-
-        }
       }
     }
 
@@ -117,9 +103,9 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
   /**
    * Generate a self-signed certificate for that key.
    *
-   * Because we only generate certificates for sites we make
-   * some assumptions based on the uri, but this cert should
-   * REALLY be replaced by the admin as soon as possible.
+   * Because we only generate certificates for sites we make some assumptions
+   * based on the uri, but this cert may be replaced by the admin if they
+   * already have an existing certificate.
    */
   function generate_certificates($ssl_key) {
     $path = "{$this->server->ssld_path}/{$ssl_key}";
@@ -130,22 +116,80 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
       )), 0700);
 
     if (provision_file()->exists($path)->status()) {
-      $pass = 'pass';
+      drush_log(dt('generating 2048 bit RSA key in %path/', array('%path' => $path)));
+      /* 
+       * according to RSA security and most sites I could read, 1024
+       * was recommended until 2010-2015 and 2048 is now the
+       * recommended length for more sensitive data. we are therefore
+       * taking the safest route.
+       *
+       * http://www.javamex.com/tutorials/cryptography/rsa_key_length.shtml
+       * http://www.vocal.com/cryptography/rsa-key-size-selection/
+       * https://en.wikipedia.org/wiki/Key_size#Key_size_and_encryption_system
+       * http://www.redkestrel.co.uk/Articles/CSR.html
+       */
+      drush_shell_exec('openssl genrsa -out %s/openssl.key 2048', $path)
+        || drush_set_error('SSL_KEY_GEN_FAIL', dt('failed to generate SSL key in %path', array('%path' => $path . '/openssl.key')));
 
-      // generate a key
-      drush_shell_exec('openssl genrsa -passout pass:%s -des3 -out %s/openssl.key.orig 1024', $pass, $path);
+      // Generate the CSR to make the key certifiable by third parties
+      $ident = "/CN={$this->context->uri}/emailAddress=abuse@{$this->context->uri}";
+      drush_shell_exec("openssl req -new -subj '%s' -key %s/openssl.key -out %s/openssl.csr -batch", $ident, $path, $path)
+        || drush_log(dt('failed to generate signing request for certificate in %path', array('%path' => $path . '/openssl.csr')));
 
-      // unsign it
-      drush_shell_exec('openssl rsa -passin pass:%s -in %s/openssl.key.orig -out %s/openssl.key', $pass, $path, $path);
-
-      // Generate the CSR
-      $ident = "/C=us/CN={$this->context->uri}/OU={$this->context->uri}/emailAddress=admin@{$this->context->uri}";
-      drush_shell_exec("openssl req -new -subj '%s' -key %s/openssl.key -out %s/openssl.csr -batch", $ident, $path, $path);
-
-      drush_shell_exec("openssl x509 -req -days 365 -in %s/openssl.csr -signkey %s/openssl.key  -out %s/openssl.crt", $path, $path, $path);
+      // sign the certificate with itself, generating a self-signed
+      // certificate. this will make a SHA1 certificate by default in
+      // current OpenSSL.
+      drush_shell_exec("openssl x509 -req -days 365 -in %s/openssl.csr -signkey %s/openssl.key  -out %s/openssl.crt", $path, $path, $path)
+        || drush_set_error('SSL_CERT_GEN_FAIL', dt('failed to generate self-signed certificate in %path', array('%path' => $path . '/openssl.crt')));
     }
   }
 
+  /**
+   * Assign the given site to a certificate to mark its usage.
+   *
+   * This is necessary for the backend to figure out when it's okay to
+   * remove certificates.
+   *
+   * Should never fail unless the receipt file cannot be created.
+   *
+   * @return the path to the receipt file if allocation succeeded
+   */
+  static function assign_certificate_site($ssl_key, $site) {
+    $path = $site->platform->server->http_ssld_path . "/" . $ssl_key . "/" . $site->uri . ".receipt";
+    drush_log(dt("registering site %site with SSL certificate %key with receipt file %path", array("%site" => $site->uri, "%key" => $ssl_key, "%path" => $path)));
+    if (touch($path)) {
+      return $path;
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Unallocate this certificate from that site.
+   *
+   * @return the path to the receipt file if removal was successful
+   */
+  static function free_certificate_site($ssl_key, $site) {
+    if (empty($ssl_key)) return FALSE;
+    $ssl_dir = $site->platform->server->http_ssld_path . "/" . $ssl_key . "/";
+    // Remove the file system reciept we left for this file
+    if (provision_file()->unlink($ssl_dir . $site->uri . ".receipt")->
+        succeed(dt("Deleted SSL Certificate association receipt for %site on %server", array(
+          '%site' => $site->uri,
+          '%server' => $site->server->remote_host)))->status()) {
+      if (!Provision_Service_http_ssl::certificate_in_use($ssl_key, $site->server)) {
+        drush_log(dt("Deleting unused SSL directory: %dir", array('%dir' => $ssl_dir)));
+        _provision_recursive_delete($ssl_dir);
+        $site->server->sync($path);
+      }
+      return $path;
+    }
+    else {
+      return FALSE;
+    }
+  }
+  
   /**
    * Assign the certificate it's own distinct IP address for this server.
    *
@@ -154,37 +198,13 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
    *
    * This code uses the filesystem by touching a reciept file in the
    * server's ssl.d directory.
+   *
+   * @deprecated this is now based the site URI
+   * @see assign_certificate_site()
    */
   static function assign_certificate_ip($ssl_key, $server) {
-    $path = $server->http_ssld_path;
-
-    $pattern = "{$path}/{$ssl_key}__*.receipt";
-    $files = glob($pattern);
-    if (sizeof($files) == 1) {
-      $pattern = "/^{$ssl_key}__(.*)\.receipt$/";
-      preg_match($pattern, basename($files[0]), $matches);
-      if (in_array($matches[1], $server->ip_addresses)) {
-        // Return an existing match.
-        return $matches[1];
-      }
-
-      // This is a stale match, remove it.
-      // Any sites using it will either find a new
-      // IP on the next verify task, or fail.
-      unlink($files[0]);
-    }
-
-    // try to assign one
-    foreach ($server->ip_addresses as $ip) {
-      if (!Provision_Service_http_ssl::get_ip_certificate($ip, $server)) {
-        touch("{$path}/{$ssl_key}__{$ip}.receipt");
-        return $ip;
-      }
-    }
-
-    return FALSE; // generate error
+    return FALSE;
   }
-
 
   /**
    * Remove the certificate's lock on the server's public IP.
@@ -192,13 +212,12 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
    * This function will delete the receipt file left behind by
    * the assign_certificate_ip script, allowing the IP to be used
    * by other certificates.
+   *
+   * @deprecated this is now based on the site URI
+   * @see free_certificate_site()
    */
   static function free_certificate_ip($ssl_key, $server) {
-    $ip = Provision_Service_http_ssl::assign_certificate_ip($ssl_key, $server);
-    $file = "{$server->http_ssld_path}/{$ssl_key}__{$ip}.receipt";
-    if (file_exists($file)) {
-      unlink($file);
-    }
+    return FALSE;
   }
 
 
@@ -220,18 +239,10 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
 
   /**
    * Check for an existing record for this IP address.
+   *
+   * @deprecated we only use the URI-based allocation now
    */
   static function get_ip_certificate($ip, $server) {
-    $path = $server->http_ssld_path;
-
-    $pattern = "{$path}/*__{$ip}.receipt";
-    $files = glob($pattern);
-    if (sizeof($files) == 1) {
-      $pattern = "/^(.*)__{$ip}\.receipt$/";
-      preg_match($pattern, basename($files[0]), $matches);
-      return $matches[1];
-    }
-
     return FALSE;
   }
 

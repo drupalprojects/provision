@@ -11,6 +11,8 @@ function drush_provision_drupal_provision_verify_validate() {
     provision_prepare_environment();
 
     _provision_drupal_create_settings_file();
+    provision_drupal_push_site();
+
     drush_errors_on();
     drush_bootstrap(DRUSH_BOOTSTRAP_DRUPAL_FULL);
   }
@@ -48,21 +50,27 @@ function drush_provision_drupal_pre_provision_verify() {
     // create a platform from a makefile, if it doesnt already exist and the makefile does.
     if (!provision_file()->exists(d()->root)->status() && !empty(d()->makefile)) {
       drush_log(dt("Platform path does not exist, fetching from drush makefile"));
-      $options = array('root' => null, 'uri' => null);
+      $arguments = array();
+      $options = array();
       // propagate working-copy args downward
-      if (drush_get_option('working-copy')) {
-        $options['working-copy'] = 1;
+      if (drush_get_option('working-copy') || !empty(d()->make_working_copy)) {
+        $options[] = '--working-copy';
       }
-      $options[] = d()->makefile;
-      $options[] = d()->root;
-      drush_backend_invoke("make", $options);
+      $arguments[] = d()->makefile;
+      $arguments[] = d()->root;
+      drush_invoke_process('@none', "make", $arguments, $options);
       if (drush_get_error()) {
-        return drush_set_error("DRUSH_MAKE_FAILED", 
+        return drush_set_error("DRUSH_MAKE_FAILED",
           "Could not download platform using drush make. No platform present");
       }
     }
 
     drush_bootstrap(DRUSH_BOOTSTRAP_DRUPAL_ROOT);
+    // If we couldn't bootstrap, there's no sense in continuing past this point.
+    if(drush_get_error()) {
+      return drush_set_error("DRUSH_INVALID_DRUPAL_ROOT",
+        "Drush could not bootstrap this platform. Please check the platform directory exists and is readable.");
+    }
     provision_file()->writable(d()->root . '/sites')
       ->succeed('Drupal sites directory @path is writable by the provisioning script')
       ->fail('Drupal sites directory @path is not writable by the provisioning script', 'PROVISION_SITES_DIR_NOT_WRITABLE');
@@ -70,6 +78,7 @@ function drush_provision_drupal_pre_provision_verify() {
     drush_set_option('sites', array_keys((array) provision_drupal_find_sites()), 'drupal'); 
     drush_log(dt("This platform is running @short_name @version", array('@short_name' => 'drupal', '@version' => VERSION)));
     drush_set_option('packages', _scrub_object(provision_find_packages()), 'drupal');
+    provision_drupal_push_site();
   }
   elseif (d()->type === 'site') {
     drush_set_option('packages', _scrub_object(provision_drupal_system_map()), 'site');
@@ -77,7 +86,10 @@ function drush_provision_drupal_pre_provision_verify() {
     _provision_drupal_create_directories();
     _provision_drupal_maintain_aliases();
     // Requires at least the database settings to complete.
-   _provision_drupal_create_settings_file();
+
+    _provision_drupal_create_settings_file();
+
+    provision_drupal_push_site();
   }
 }
 

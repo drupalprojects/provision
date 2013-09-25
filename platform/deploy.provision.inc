@@ -17,6 +17,8 @@
 
 /**
  * Make sure we have a valid site being deployd, and that the file being deployd from exists
+ *
+ * Implementation of drush_hook_COMMAND_validate().
  */
 function drush_provision_drupal_provision_deploy_validate($backup_file = null) {
   $exists = provision_file()->exists($backup_file)
@@ -44,6 +46,8 @@ function drush_provision_drupal_provision_deploy_validate($backup_file = null) {
 
 /**
  * Make a backup before making any changes, and add extract the file we are restoring from
+ *
+ * Implementation of drush_hook_pre_COMMAND().
  */
 function drush_provision_drupal_pre_provision_deploy($backup_file) {
   // the url is likely to have changed in the deployment
@@ -56,6 +60,10 @@ function drush_provision_drupal_pre_provision_deploy($backup_file) {
     provision_file()->chgrp(drush_get_option('extract_path') . '/files', d('@server_master')->web_group, TRUE)
       ->succeed('Changed group ownership of files in <code>@path</code> to @gid')
       ->fail('Could not change group ownership of files in <code>@path</code> to @gid');
+    provision_file()->chgrp(drush_get_option('extract_path') . '/private/files', d('@server_master')->web_group, TRUE)
+      ->succeed('Changed group ownership of private files in <code>@path</code> to @gid')
+      ->fail('Could not change group ownership of private files in <code>@path</code> to @gid');
+
 
     if (drush_get_option('deploy_replace_site', FALSE)) {
       $old = d()->site_path . '.restore';
@@ -80,10 +88,11 @@ function drush_provision_drupal_pre_provision_deploy($backup_file) {
     // Load the newly created information, including re-loading the new db creds.
     drush_bootstrap(DRUSH_BOOTSTRAP_DRUPAL_SITE);
     _provision_drupal_create_settings_file();
+    provision_drupal_push_site($override_slave_authority = TRUE);
 
     $site_packages = drush_get_option('packages', array(), 'site');
     $drupal_packages = drush_get_option('packages', array(), 'drupal');
-    $merged_modules = $drupal_packages['base']['modules'];
+    $merged_modules = isset($drupal_packages['base']['modules']) ? $drupal_packages['base']['modules'] : array();
     if (isset($site_packages['profiles'])) {
       $profiles = array_keys($site_packages['profiles']);
       $profile = $profiles[0];
@@ -117,6 +126,8 @@ function drush_provision_drupal_pre_provision_deploy($backup_file) {
 
 /**
  * Remove the extracted site directory
+ *
+ * Implementation of drush_hook_pre_COMMAND_rollback().
  */
 function drush_provision_drupal_pre_provision_deploy_rollback() {
   if (drush_get_option('deploy_replace_site', FALSE)) {
@@ -140,11 +151,17 @@ function drush_provision_drupal_pre_provision_deploy_rollback() {
   }
 }
 
+/**
+ * Implementation of drush_hook_COMMAND().
+ */
 function drush_provision_drupal_provision_deploy() {
   _provision_drupal_maintain_aliases();
   _provision_drupal_create_directories();
 }
 
+/**
+ * Implementation of drush_hook_post_COMMAND().
+ */
 function drush_provision_drupal_post_provision_deploy() {
   // call the drush updatedb command.
   provision_backend_invoke(d()->name, 'updatedb');

@@ -39,6 +39,7 @@ function drush_provision_drupal_provision_backup_validate($backup_file = NULL) {
     $suggested = d()->platform->server->backup_path . '/' . d()->uri . '-' . date("Ymd.His", time()) . '.tar.gz';
 
     // Use format of mysite.com-2008-01-02, if already existing, add number.
+    $count = 0;
     while (is_file($suggested)) {
       $count++;
       $suggested = d()->platform->server->backup_path . '/' . d()->uri . '-' .  date('Ymd.His', time()) . '_' . $count . '.tar.gz';
@@ -58,12 +59,7 @@ function drush_provision_drupal_provision_backup() {
 
 
   // synch all filesystem changes back from the remote server.
-  d()->service('http')->fetch(d()->site_path . '/files/');
-  d()->service('http')->fetch(d()->site_path . '/private/');
-  d()->service('http')->fetch(d()->site_path . '/modules/');
-  d()->service('http')->fetch(d()->site_path . '/themes/');
-  d()->service('http')->fetch(d()->site_path . '/libraries/');
-  d()->service('http')->fetch(d()->site_path . '/local.settings.php');
+  provision_drupal_fetch_site();
 
   // Check if we are currently cloaking credentials
   $cloaked = d()->service('http')->cloaked_db_creds();
@@ -77,6 +73,8 @@ function drush_provision_drupal_provision_backup() {
 
     // Write the uncloaked credentials to the settings.php
     _provision_drupal_create_settings_file();
+    provision_drupal_push_site();
+
   }
 
   $olddir = getcwd();
@@ -87,9 +85,9 @@ function drush_provision_drupal_provision_backup() {
   }
   if (substr($backup_file, -2) == 'gz') {
     // same as above: some do not support -z
-    $command = "tar cpf - . | gzip -c > %s";
+    $command = 'tar cpf - . | gzip -c > %s';
   } else {
-    $command = "tar cpf %s .";
+    $command = 'tar cpf %s .';
   }
   $result = drush_shell_exec($command,  $backup_file);
 
@@ -103,6 +101,8 @@ function drush_provision_drupal_provision_backup() {
     drush_log(dt("Re-cloaking database credentials after backup"));
     drush_set_option('provision_db_cloaking', TRUE);
     _provision_drupal_create_settings_file();
+    provision_drupal_push_site();
+
   }
 
   if (!$result && !drush_get_option('force', false)) {

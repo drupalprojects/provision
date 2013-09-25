@@ -21,16 +21,17 @@ class Provision_Context_server extends Provision_Context {
 
   static function option_documentation() {
     $options = array(
-      '--remote_host' => 'server: host name; default localhost',
-      '--script_user' => 'server: OS user name; default current user',
-      '--aegir_root' => 'server: Aegir root; default ' . getenv('HOME'),
-      '--master_url' => 'server: Hostmaster URL',
+      'remote_host' => 'server: host name; default localhost',
+      'script_user' => 'server: OS user name; default current user',
+      'aegir_root' => 'server: Aegir root; default ' . getenv('HOME'),
+      'master_url' => 'server: Hostmaster URL',
     );
     foreach (drush_command_invoke_all('provision_services') as $service => $default) {
+      // TODO: replace this file scanning nastiness, with a hook!
       $reflect = new reflectionClass('Provision_Service_' . $service);
       $base_dir = dirname($reflect->getFilename());
       $types = array();
-      $options['--' . $service . '_service_type'] = 'placeholder';
+      $options[$service . '_service_type'] = 'placeholder';
       foreach (array_keys(drush_scan_directory($base_dir, '%.*_service\.inc%')) as $service_file) {
         if (preg_match('%^' . $base_dir . '/([a-z]+)/(?:\1)_service.inc$%', $service_file, $match)) {
           $types[] = $match[1];
@@ -38,7 +39,7 @@ class Provision_Context_server extends Provision_Context {
           $options = array_merge($options, call_user_func(array(sprintf('Provision_Service_%s_%s', $service, $match[1]), 'option_documentation')));
         }
       }
-      $options['--' . $service . '_service_type'] = 'server: ' . implode(', ', $types) . ', or null; default ' . (empty($default) ? 'null' : $default);
+      $options[$service . '_service_type'] = 'server: ' . implode(', ', $types) . ', or null; default ' . (empty($default) ? 'null' : $default);
     }
     return $options;
   }
@@ -52,7 +53,10 @@ class Provision_Context_server extends Provision_Context {
     }
     else {
       $this->aegir_root = d('@server_master')->aegir_root;
-      $this->script_user = d('@server_master')->script_user;
+      // In certain cicumstances it might be useful to have different
+      // script_users on different Aegir servers, but this could also cause
+      // weird things to happen, so use with caution!
+      $this->setProperty('script_user', d('@server_master')->script_user);
     }
 
     $this->setProperty('ip_addresses', array(), true);
@@ -95,11 +99,9 @@ class Provision_Context_server extends Provision_Context {
       }
     }
     if ($type) {
-      $file = sprintf("%s/%s/%s_service.inc", $base_dir, $type, $type);
       $className = sprintf("Provision_Service_%s_%s", $service, $type);
       if (class_exists($className)) {
         drush_log("Loading $type driver for the $service service");
-        //include_once($file);
         $object = new $className($this->name);
         $this->services[$service] = $object;
         $this->setProperty($type_option, $type);
@@ -210,13 +212,25 @@ class Provision_Context_server extends Provision_Context {
    *
    * @param $path
    *   Full path to fetch.
+   * @param $additional_options
+   *   An array of options that overrides whatever was passed in on the command
+   *   line (like the 'process' context, but only for the scope of this one
+   *   call).
    */
-  function fetch($path) {
+  function fetch($path, $additional_options = array()) {
     if (!provision_is_local_host($this->remote_host)) {
       if (provision_file()->exists($path)->status()) {
-        $options = array(
+        $options = array_merge(array(
           'omit-dir-times' => TRUE,
-        );
+        ), $additional_options);
+
+        // We need to do this due to how drush creates the rsync command.
+        // If the option is present at all, even if false or null, it will
+        // add it to the command.
+        if (!isset($additional_options['no-delete']) || $additional_options['no-delete'] == FALSE ) {
+          $options['delete'] = TRUE;
+        }
+
         if (drush_core_call_rsync(escapeshellarg($this->script_user . '@' . $this->remote_host . ':/') . $path, $path, $options, TRUE, FALSE)) {
           drush_log(dt('@path has been fetched from remote server @remote_host.', array(
             '@path' => $path, 

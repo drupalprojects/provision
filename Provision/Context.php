@@ -51,7 +51,10 @@ class Provision_Context {
     }
     if (array_key_exists($name, $this->properties)) {
       if (isset($this->oid_map[$name]) && !empty($this->properties[$name])) {
-        return d($this->properties[$name]);
+        $service = d($this->properties[$name], FALSE, FALSE);
+        if (!is_null($service)) {
+          return $service;
+        }
       }
       else {
         return $this->properties[$name];
@@ -303,7 +306,7 @@ class Provision_Context {
    * Return context-specific configuration options for help.
    *
    * @return
-   *   array('--option' => 'description')
+   *   array('option' => 'description')
    */
   static function option_documentation() {
     return array();
