@@ -117,3 +117,18 @@ function _subdirs_remove_symlinks() {
     }
   }
 }
+
+/**
+ * Inject our includes into existing virtual host
+ *
+ * Implementation of hook_provision_apache_vhost_config().
+ *
+ * This is the case where example.com exists for the alias example.com/foo.
+ */
+function subdirs_provision_apache_vhost_config($uri, $data) {
+  $subdirs_path = $data['http_subdird_path'] . '/' . $uri . '/*.conf'; // wild guess
+  if (glob($subdirs_path)) {
+    return "# subdirectory sites for this virtual host
+Include $subdirs_path";
+  }
+}
