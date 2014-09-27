@@ -15,17 +15,17 @@ class Provision_Service_http extends Provision_Service {
 
 
   function verify_server_cmd() {
-    $this->create_config($this->context->type);
+    $this->create_config($this->entity->type);
     $this->parse_configs();
   }
 
   function verify_platform_cmd() {
-    $this->create_config($this->context->type);
+    $this->create_config($this->entity->type);
     $this->parse_configs();
   }
 
   function verify_site_cmd() {
-    $this->create_config($this->context->type);
+    $this->create_config($this->entity->type);
     $this->parse_configs();
   }
 
@@ -33,10 +33,10 @@ class Provision_Service_http extends Provision_Service {
   /**
    * Register the http handler for platforms, based on the web_server option.
    */
-  static function subscribe_platform($context) {
-    $context->setProperty('web_server', '@server_master');
-    $context->is_oid('web_server');
-    $context->service_subscribe('http', $context->web_server->name);
+  static function subscribe_platform($entity) {
+    $entity->setProperty('web_server', '@server_master');
+    $entity->is_oid('web_server');
+    $entity->service_subscribe('http', $entity->web_server->name);
   }
 
 }

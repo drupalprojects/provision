@@ -45,7 +45,7 @@ We are making the following assumptions:
 
     $new_platform = '@platform_' . preg_replace("/[!\W]/", "", basename(rtrim($platform, '/')));
     drush_invoke_process('@none', "provision-save", array($new_platform), array(
-      'context_type' => 'platform',
+      'entity_type' => 'platform',
       'server' => '@server_master',
       'web_server' => '@server_master',
       'root' => $platform,
@@ -66,14 +66,14 @@ We are making the following assumptions:
      * @deprecated in drush3 it's 'options', in drush 4 it's 'cli', drop
      * 'options' when we drop drush3 support
      */
-    $context = drush_get_context('cli') ? 'cli' : 'options';
+    $entity = drush_get_context('cli') ? 'cli' : 'options';
     drush_invoke_process('@none', "provision-save", array($server), array(
-      'context_type' => 'server',
+      'entity_type' => 'server',
       'aegir_root' => dirname(rtrim($data['config_path'], '/')),
       'remote_host' => php_uname('n'),
       'script_user' => $data['script_user'],
      // apache or nginx or..
-      'http_service_type' => drush_get_option('http_service_type', 'apache', $context),
+      'http_service_type' => drush_get_option('http_service_type', 'apache', $entity),
       'web_group' => $data['web_group'],
       'master_url' => $data['master_url'],
       'restart_cmd' => $data['restart_cmd'],
@@ -92,7 +92,7 @@ We are making the following assumptions:
    
     $old_platform = '@platform_' . preg_replace("/[!\W]/", "", basename(rtrim($data['publish_path'], '/')));
     drush_invoke_process('@none', "provision-save", array($old_platform), array(
-      'context_type' => 'platform',
+      'entity_type' => 'platform',
       'server' => $server,
       'web_server' => $server,
       'root' => $data['publish_path'],
@@ -106,7 +106,7 @@ We are making the following assumptions:
 
     $new_platform = '@platform_' . preg_replace("/[!\W]/", "", basename(rtrim($platform, '/')));
     drush_invoke_process('@none', "provision-save", array($new_platform), array(
-      'context_type' => 'platform',
+      'entity_type' => 'platform',
       'server' => $server,
       'web_server' => $server,
       'root' => $platform,
@@ -122,7 +122,7 @@ We are making the following assumptions:
 
     $site_name = '@hostmaster';
     drush_invoke_process('@none', "provision-save", array($site_name), array(
-      'context_type' => 'site',
+      'entity_type' => 'site',
       'platform' => $old_platform,
       'db_server' => $server,
       'uri' => $site,
@@ -156,7 +156,7 @@ function drush_provision_hostmaster_migrate($site, $platform) {
 
 function drush_provision_post_hostmaster_migrate($site, $platform) {
   provision_backend_invoke(drush_get_option('site_name'), 'cache-clear', array('drush'));
-  // we pass the context names we generated to the task so we can enforce that the names
+  // we pass the entity names we generated to the task so we can enforce that the names
   // stay the same.
   provision_backend_invoke(drush_get_option('site_name'), 'hostmaster-resume', array(), array(
     'old_platform_name' => drush_get_option('old_platform'),

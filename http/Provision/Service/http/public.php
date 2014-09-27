@@ -24,7 +24,7 @@ class Provision_Service_http_public extends Provision_Service_http {
     if ($config == 'site') {
 
       // DO not create it with the port here. Protocol only is enough.
-      $data['redirect_url'] = "http://{$this->context->uri}";
+      $data['redirect_url'] = "http://{$this->entity->uri}";
 
       $data = array_merge($data, drush_get_context('site'));
     }
@@ -114,7 +114,7 @@ class Provision_Service_http_public extends Provision_Service_http {
   function grant_server_list() {
     return array(
       $this->server,
-      $this->context->platform->server,
+      $this->entity->platform->server,
     );
   }
 }

@@ -96,7 +96,7 @@ class Provision_Config_Nginx_SubdirVhost extends Provision_Config_Http {
             // Unfortunatelly, it doesn't work with Drush 5 and current Aegir 2.x,
             // and is even more dangerous, because instead of creating separate
             // re-verify task for the parent site, it will run it "inline",
-            // immediatelly, so in the wrong context, which, depending on other
+            // immediatelly, so in the wrong entity, which, depending on other
             // conditions will destroy *hostmaster* database, so it is mentioned
             // here as a nostalgic reminiscence of good old Drush 4, which allowed
             // to create frontend tasks from the backend, safely.

@@ -23,8 +23,8 @@
  *             or used for an upgrade.
  *   disable - Disable an installed Drupal site. Changes the virtual host config file so that it redirects to provision_disabled_site_redirect_url
  *   enable  - Re-enable a site that has already been disabled. Recreates the virtual host file.
- *   delete  - In a site context: generates a back up of the site, and then removes all references to it.
- *             In a platform context: removes the platform and its vhost config from the server if no sites are currently running on it
+ *   delete  - In a site entity: generates a back up of the site, and then removes all references to it.
+ *             In a platform entity: removes the platform and its vhost config from the server if no sites are currently running on it
  *   restore - Revert to a previous backup of the site.
  *
  *   deploy  - Accepts a site package (backup) as argument, and redeploys it, running the upgrade processes on it.
@@ -89,13 +89,13 @@ function provision_drush_command() {
   $items['provision-save'] = array(
     'description' => dt('Save Drush alias'),
     'arguments' => array(
-      '@context_name' => 'Entity to save',
+      '@entity_name' => 'Entity to save',
     ),
     'options' => array_merge(array(
-      'context_type' => 'server, platform, or site; default server',
+      'entity_type' => 'server, platform, or site; default server',
       'delete' => 'Remove the alias.',
     ), Provision_Entity_server::option_documentation(), Provision_Entity_platform::option_documentation(), Provision_Entity_site::option_documentation()),
-    // we should populate from all known contexts, unfortunately we don't
+    // we should populate from all known entitys, unfortunately we don't
     // enumerate them yet... see https://drupal.org/node/1972286
     'allow-additional-options' => TRUE,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,

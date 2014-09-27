@@ -8,6 +8,6 @@ class Provision_Config_Http_Platform extends Provision_Config_Http {
   public $description = 'platform configuration file';
 
   function filename() {
-    return $this->data['http_platformd_path'] . '/' . ltrim($this->context->name, '@') . '.conf';
+    return $this->data['http_platformd_path'] . '/' . ltrim($this->entity->name, '@') . '.conf';
   }
 }

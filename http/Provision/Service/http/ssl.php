@@ -36,9 +36,9 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
   function init_site() {
     parent::init_site();
 
-    $this->context->setProperty('ssl_enabled', 0);
-    $this->context->setProperty('ssl_key', NULL);
-    $this->context->setProperty('ip_addresses', array());
+    $this->entity->setProperty('ssl_enabled', 0);
+    $this->entity->setProperty('ssl_key', NULL);
+    $this->entity->setProperty('ip_addresses', array());
   }
 
 
@@ -46,8 +46,8 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
     $data = parent::config_data($config, $class);
     $data['http_ssl_port'] = $this->server->http_ssl_port;
 
-    if ($config == 'site' && $this->context->ssl_enabled) {
-      foreach ($this->context->ip_addresses as $server => $ip_address) {
+    if ($config == 'site' && $this->entity->ssl_enabled) {
+      foreach ($this->entity->ip_addresses as $server => $ip_address) {
         if ($server == $this->server->name || '@' . $server == $this->server->name) {
           $data['ip_address'] = $ip_address;
           break;
@@ -57,12 +57,12 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
         drush_log(dt('No proper IP provided by the frontend for server %servername, using wildcard', array('%servername' => $this->server->name)), 'info');
         $data['ip_address'] = '*';
       }
-      if ($this->context->ssl_enabled == 2) {
+      if ($this->entity->ssl_enabled == 2) {
         $data['ssl_redirection'] = TRUE;
-        $data['redirect_url'] = "https://{$this->context->uri}";
+        $data['redirect_url'] = "https://{$this->entity->uri}";
       }
 
-      if ($ssl_key = $this->context->ssl_key) {
+      if ($ssl_key = $this->entity->ssl_key) {
         // Retrieve the paths to the cert and key files.
         // they are generated if not found.
         $certs = $this->get_certificates($ssl_key);
@@ -141,7 +141,7 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
         || drush_set_error('SSL_KEY_GEN_FAIL', dt('failed to generate SSL key in %path', array('%path' => $path . '/openssl.key')));
 
       // Generate the CSR to make the key certifiable by third parties
-      $ident = "/CN={$this->context->uri}/emailAddress=abuse@{$this->context->uri}";
+      $ident = "/CN={$this->entity->uri}/emailAddress=abuse@{$this->entity->uri}";
       drush_shell_exec("openssl req -new -subj '%s' -key %s/openssl.key -out %s/openssl.csr -batch", $ident, $path, $path)
         || drush_log(dt('failed to generate signing request for certificate in %path', array('%path' => $path . '/openssl.csr')));
 
@@ -259,7 +259,7 @@ class Provision_Service_http_ssl extends Provision_Service_http_public {
    * Verify server.
    */
   function verify() {
-    if ($this->context->type === 'server') {
+    if ($this->entity->type === 'server') {
       provision_file()->create_dir($this->server->ssld_path, dt("Central SSL certificate repository."), 0700);
 
       provision_file()->create_dir($this->server->http_ssld_path,

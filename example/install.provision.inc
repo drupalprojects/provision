@@ -24,16 +24,16 @@ function drush_example_provision_install() {
    * Using the d() accessor.
    *
    * Every object that aegir manages (namely servers, platforms and sites),
-   * has an associated 'named context' that we manage for it.
+   * has an associated 'named entity' that we manage for it.
    *
    * You can run the provision commands on different objects, simply
-   * by specifying the context name before the drush command, such as:
+   * by specifying the entity name before the drush command, such as:
    *
    *   drush @server_master provision-verify
    *
    * When you have called a command in this way, you can use the d()
    * function without any arguments to retrieve the object representing
-   * the current context.
+   * the current entity.
    */
   if (d()->type == 'site') {
     // only run this code on site objects.
@@ -41,7 +41,7 @@ function drush_example_provision_install() {
     /**
      * Calling service methods.
      *
-     * All the provision context objects can register which
+     * All the provision entity objects can register which
      * servers handle specific services for them.
      *
      * To call the correct methods, you just need to use the

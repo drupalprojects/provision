@@ -8,7 +8,7 @@
 
 
 /**
- * Import the information about the existing site, and return it in the $data context array
+ * Import the information about the existing site, and return it in the $data entity array
  */
 function drush_provision_drupal_provision_import() {
   if (d()->type === 'site') {

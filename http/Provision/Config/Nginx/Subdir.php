@@ -22,7 +22,7 @@ class Provision_Config_Nginx_Subdir extends Provision_Config_Http {
         drush_log("Subdirectory alias `$alias` found. Creating configuration files.", 'notice');
         $uri_path = $this->data['http_subdird_path'] . '/' . $this->uri();
         provision_file()->create_dir($uri_path, dt("Webserver subdir configuration for domain"), 0700);
-        $this->context->platform->server->sync($uri_path, array(
+        $this->entity->platform->server->sync($uri_path, array(
           'exclude' => $uri_path . '/*',  // Make sure remote directory is created
         ));
         parent::write();

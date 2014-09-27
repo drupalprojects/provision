@@ -370,7 +370,7 @@ function install_main() {
 /**
  * Batch callback for batch installation of modules.
  */
-function _install_module_batch($module, $module_name, &$context) {
+function _install_module_batch($module, $module_name, &$entity) {
   drush_log(dt("Enabling module : !module", array("!module" => $module)), 'success');
   _drupal_install_module($module);
   // We enable the installed module right away, so that the module will be
@@ -378,7 +378,7 @@ function _install_module_batch($module, $module_name, &$context) {
   // modules possibly depending on it can safely perform their installation
   // steps.
   module_enable(array($module));
-  $context['results'][] = $module;
-  $context['message'] = st('Installed %module module.', array('%module' => $module_name));
+  $entity['results'][] = $module;
+  $entity['message'] = st('Installed %module module.', array('%module' => $module_name));
 }
 install_main();

@@ -110,7 +110,7 @@ function drush_provision_tests_install_platform($platform_name, $platform_alias 
   );
   $options = array(
     'root' => "/var/aegir/platforms/$platform_alias",
-    'context_type' => 'platform',
+    'entity_type' => 'platform',
   );
   drush_invoke_process('@none', 'provision-save', $args, $options);
   provision_backend_invoke('@hostmaster', 'hosting-import', array("@platform_$platform_alias",));
@@ -136,7 +136,7 @@ function drush_provision_tests_install_site($platform_name, $site, $profile_name
   );
   $options = array(
     'uri' => "$site.aegir.example.com",
-    'context_type' => 'site',
+    'entity_type' => 'site',
     'platform' => "@platform_$platform_name",
     'profile' => $profile_name,
     'db_server' => '@server_localhost',
@@ -157,7 +157,7 @@ function drush_provision_tests_dl_module_to_site($module, $site) {
     $module,
   );
   $options = array(
-    // Normally 'dl' in a site context should know to put it in the site-
+    // Normally 'dl' in a site entity should know to put it in the site-
     // specific modules directory, but not through provision_backend_invoke()?
     'destination' => "sites/$site.aegir.example.com/modules",
   );

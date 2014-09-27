@@ -69,12 +69,12 @@ class Provision_Service_dns extends Provision_Service {
   function init_site() {
     parent::init_site();
 
-    $this->context->setProperty('dns_zone', NULL);
-    if (is_null($this->context->dns_zone)) {
-      $this->context->dns_zone = $this->guess_zone($this->context->uri);
+    $this->entity->setProperty('dns_zone', NULL);
+    if (is_null($this->entity->dns_zone)) {
+      $this->entity->dns_zone = $this->guess_zone($this->entity->uri);
     }
 
-    $this->context->dns_zone_subdomain = trim(str_replace($this->context->dns_zone, '', $this->context->uri), '.');
+    $this->entity->dns_zone_subdomain = trim(str_replace($this->entity->dns_zone, '', $this->entity->uri), '.');
   }
 
   /**
@@ -95,7 +95,7 @@ class Provision_Service_dns extends Provision_Service {
     $ret = TRUE;
     foreach ($this->server->slave_servers as $server) {
       // If any methods return false, return false for the whole operation.
-      $result = call_user_func_array(array(d($server)->service($this->service, $this->context), $method), $args);
+      $result = call_user_func_array(array(d($server)->service($this->service, $this->entity), $method), $args);
       $ret = $ret && $result;
     }
     return $ret;
@@ -212,10 +212,10 @@ class Provision_Service_dns extends Provision_Service {
    * This creates a zone, which mostly consists of adding the SOA record.
    */
   function create_zone($zone = NULL) {
-    if (is_null($zone) && ($this->context->type == 'site')) {
-      $host = $this->context->uri;
-      $zone = $this->context->dns_zone;
-      $sub = $this->context->dns_zone_subdomain;
+    if (is_null($zone) && ($this->entity->type == 'site')) {
+      $host = $this->entity->uri;
+      $zone = $this->entity->dns_zone;
+      $sub = $this->entity->dns_zone_subdomain;
     }
     if (empty($zone)) {
       return drush_set_error('DRUSH_DNS_NO_ZONE', "Could not determine the zone to create");
@@ -258,7 +258,7 @@ class Provision_Service_dns extends Provision_Service {
    * Thing.
    *
    * @arg $host string the hostname to create. If NULL, we look in the
-   * current context (should be a site) for a URI.
+   * current entity (should be a site) for a URI.
    */
   function create_host($host = NULL) {
     if (!is_null($host)) {
@@ -266,11 +266,11 @@ class Provision_Service_dns extends Provision_Service {
       $sub = $this->guess_zone($host, 'subdomain');
       $aliases = array();
     }
-    elseif ($this->context->type == 'site') {
-      $host = $this->context->uri;
-      $zone = $this->context->dns_zone;
-      $sub = $this->context->dns_zone_subdomain;
-      $aliases = $this->context->aliases;
+    elseif ($this->entity->type == 'site') {
+      $host = $this->entity->uri;
+      $zone = $this->entity->dns_zone;
+      $sub = $this->entity->dns_zone_subdomain;
+      $aliases = $this->entity->aliases;
     }
     else {
       return drush_set_error('DRUSH_DNS_NO_ZONE', "Could not determine the zone to create");
@@ -301,7 +301,7 @@ class Provision_Service_dns extends Provision_Service {
    * Similar to create host, this will seek and destroy that host throughout zonefiles.
    *
    * @arg $host string the hostname to create. If NULL, we look in the
-   * current context (should be a site) for a URI.
+   * current entity (should be a site) for a URI.
    */
   function delete_host($host = NULL) {
     if (!is_null($host)) {
@@ -309,11 +309,11 @@ class Provision_Service_dns extends Provision_Service {
       $sub = $this->guess_zone($host, 'subdomain');
       $aliases = array();
     }
-    elseif ($this->context->type == 'site') {
-      $host = $this->context->uri;
-      $zone = $this->context->dns_zone;
-      $sub = $this->context->dns_zone_subdomain;
-      $aliases = $this->context->aliases;
+    elseif ($this->entity->type == 'site') {
+      $host = $this->entity->uri;
+      $zone = $this->entity->dns_zone;
+      $sub = $this->entity->dns_zone_subdomain;
+      $aliases = $this->entity->aliases;
     }
     else {
       return drush_set_error('DRUSH_DNS_NO_ZONE', "Could not determine the zone to create");

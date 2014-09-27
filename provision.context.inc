@@ -1,18 +1,18 @@
 <?php
 
 /**
- * @file Provision named context base classes.
+ * @file Provision named entity base classes.
  */
 
 /**
- * Store and access context objects by alias name.
+ * Store and access entity objects by alias name.
  *
  * @param $name
  *   A Drush alias name, including leading @.
  * @param $_root_object
  *   Internal use only, set default object returned by d().
  * @param $allow_creation
- *   Defaults to TRUE. Allows creating a new context object with the specified
+ *   Defaults to TRUE. Allows creating a new entity object with the specified
  *   $name.
  *
  * @return
@@ -39,13 +39,13 @@ function & d($name = NULL, $_root_object = FALSE, $allow_creation = TRUE) {
     $default_instance = $name;
   }
   
-  $name = provision_normalise_context_name($name);
+  $name = provision_normalise_entity_name($name);
 
   if (isset($instances[$name])) {
     return $instances[$name];
   }
   else {
-    $instances[$name] = provision_context_factory($name, $allow_creation);
+    $instances[$name] = provision_entity_factory($name, $allow_creation);
     if (!is_null($instances[$name])) {
       $instances[$name]->method_invoke('init');
       $instances[$name]->type_invoke('init');
@@ -65,7 +65,7 @@ function & d($name = NULL, $_root_object = FALSE, $allow_creation = TRUE) {
 function provision_sitealias_get_record($name) {
   static $cache = array();
   
-  $name = provision_normalise_context_name($name);
+  $name = provision_normalise_entity_name($name);
 
   if (!isset($cache[$name])) {
     $cache[$name] = drush_sitealias_get_record($name);
@@ -75,18 +75,18 @@ function provision_sitealias_get_record($name) {
 }
 
 /**
- * Create a new context object.
+ * Create a new entity object.
  *
  * @param $name
- *   The name of the context object to instantiate.
+ *   The name of the entity object to instantiate.
  * @param $allow_creation
- *   Defaults to TRUE. Allows creating a new context object with the specified
+ *   Defaults to TRUE. Allows creating a new entity object with the specified
  *   $name.
  *
  * @return
- *   An instance of the specified context, or NULL if it could not be loaded.
+ *   An instance of the specified entity, or NULL if it could not be loaded.
  */
-function provision_context_factory($name, $allow_creation = TRUE) {
+function provision_entity_factory($name, $allow_creation = TRUE) {
   // the default type, can also be 'platform' or 'site'
   $type = 'server';
 
@@ -97,11 +97,11 @@ function provision_context_factory($name, $allow_creation = TRUE) {
   }
   $options = array_merge(drush_get_context('stdin'), drush_get_context('options'), drush_get_context('cli'));
 
-  if (isset($record['context_type'])) {
-    $type = $record['context_type'];
+  if (isset($record['entity_type'])) {
+    $type = $record['entity_type'];
   }
-  elseif (isset($options['context_type'])) {
-    $type = $options['context_type'];
+  elseif (isset($options['entity_type'])) {
+    $type = $options['entity_type'];
   }
   $classname = "Provision_Entity_{$type}";
 

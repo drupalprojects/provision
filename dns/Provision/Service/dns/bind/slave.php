@@ -52,10 +52,10 @@ class Provision_Service_dns_bind_slave extends Provision_Service_dns {
    * @see Provision_Service_dns::create_zone()
    */
   function create_zone($zone = null) {
-    if (is_null($zone) && ($this->context->type == 'site')) {
-      $host = $this->context->uri;
-      $zone = $this->context->dns_zone;
-      $sub = $this->context->dns_zone_subdomain;
+    if (is_null($zone) && ($this->entity->type == 'site')) {
+      $host = $this->entity->uri;
+      $zone = $this->entity->dns_zone;
+      $sub = $this->entity->dns_zone_subdomain;
     }
     if (empty($zone)) {
       return drush_set_error('DRUSH_DNS_NO_ZONE', "Could not determine the zone to create");

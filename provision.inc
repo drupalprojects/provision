@@ -388,7 +388,7 @@ function provision_password($length = 10) {
  * This is a helper function which changes deeply nested objects into arrays
  *
  * This helps get past the face that objects are not simple to work with, or
- * save in context files.
+ * save in entity files.
  *
  * This function 'misuses' a side effect of the json_decode function's second
  * parameter. As this is done in C, and the structures we are manipulating
@@ -399,10 +399,10 @@ function _scrub_object($input) {
 }
 
 /**
- * Execute a command against a specific context object.
+ * Execute a command against a specific entity object.
  *
  * @param $target
- *   the context to operate on, @ prefix is optional.
+ *   the entity to operate on, @ prefix is optional.
  * @param $command
  *   drush command passed to drush_invoke_process().
  * @param $arguments
@@ -415,8 +415,8 @@ function _scrub_object($input) {
  * @see drush_invoke_process()
  */
 function provision_backend_invoke($target, $command, $arguments = array(), $data = array(), $mode = 'GET') {
-  $context = '@' . ltrim($target, '@');
-  return drush_invoke_process($context, $command, $arguments, $data, array('method' => $mode, 'integrate' => TRUE, 'dispatch-using-alias' => TRUE));
+  $entity = '@' . ltrim($target, '@');
+  return drush_invoke_process($entity, $command, $arguments, $data, array('method' => $mode, 'integrate' => TRUE, 'dispatch-using-alias' => TRUE));
 }
 
 /**
@@ -466,15 +466,15 @@ function provision_version_parts() {
 }
 
 /**
- * Normalise a context name, ensuring that it starts with one '@'.
+ * Normalise a entity name, ensuring that it starts with one '@'.
  *
  * @param $name
- *   The context name to normalise.
+ *   The entity name to normalise.
  *
  * @return
- *   The normalised context name.
+ *   The normalised entity name.
  */
-function provision_normalise_context_name($name) {
+function provision_normalise_entity_name($name) {
   return '@' . ltrim($name, '@');
 }
 
@@ -505,7 +505,7 @@ class provision {
    * The actual body of the method_invoke function.
    *
    * This is a static method so it can be re-used by some other classes
-   * that aren't contexts. (notably services and configs).
+   * that aren't entitys. (notably services and configs).
    */
   static function method_invoke($object, $func, $args = array()) {
     if (method_exists($object, $func)) {
@@ -514,6 +514,6 @@ class provision {
   }
 }
 
-include_once('provision.context.inc');
+include_once('provision.entity.inc');
 include_once('provision.service.inc');
 include_once('provision.file.inc');

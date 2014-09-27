@@ -176,8 +176,8 @@ function drush_provision_hostmaster_install($site = NULL) {
   $aegir_db_host = drush_get_option('aegir_db_host');
 
   $server = '@server_master';
-  $master_context = array(
-    'context_type' => 'server',
+  $master_entity = array(
+    'entity_type' => 'server',
     // files
     'remote_host' => $aegir_http_host,
     'aegir_root' => $aegir_root,
@@ -192,22 +192,22 @@ function drush_provision_hostmaster_install($site = NULL) {
 
   $master_db = sprintf("mysql://%s:%s@%s:%s", urlencode($aegir_db_user), urlencode($aegir_db_pass), $aegir_db_host, $aegir_db_port);
   if ($aegir_http_host == $aegir_db_host) {
-    $master_context['db_service_type'] = 'mysql';
-    $master_context['master_db'] = $master_db;
+    $master_entity['db_service_type'] = 'mysql';
+    $master_entity['master_db'] = $master_db;
     $dbserver = $server;
   } else {
     $dbserver = '@server_' . $aegir_db_host;
-    $dbserver_context = array(
+    $dbserver_entity = array(
       'remote_host' => $aegir_db_host,
-      'context_type' => 'server',
+      'entity_type' => 'server',
       'db_service_type' => 'mysql',
       'master_db' => $master_db,
       'db_port' => $aegir_db_port,
     );
-    drush_invoke_process('@none', "provision-save", array($dbserver), $dbserver_context);
+    drush_invoke_process('@none', "provision-save", array($dbserver), $dbserver_entity);
     provision_backend_invoke($dbserver, 'provision-verify');
   }
-  drush_invoke_process('@none', "provision-save", array($server), $master_context);
+  drush_invoke_process('@none', "provision-save", array($server), $master_entity);
   provision_backend_invoke($server, 'provision-verify');
 
   // exit if an error has occured.
@@ -221,7 +221,7 @@ function drush_provision_hostmaster_install($site = NULL) {
 
   $platform_name = '@platform_hostmaster';
   drush_invoke_process('@none', "provision-save", array($platform_name), array(
-    'context_type' => 'platform',
+    'entity_type' => 'platform',
     'server' => $server,
     'web_server' => $server,
     'root' => $platform,
@@ -244,7 +244,7 @@ function drush_provision_hostmaster_install($site = NULL) {
 
   $site_name = '@hostmaster';
   drush_invoke_process('@none', "provision-save", array($site_name), array(
-    'context_type' => 'site',
+    'entity_type' => 'site',
     'platform' => $platform_name,
     'db_server' => $dbserver,
     'uri' => $site,
@@ -272,7 +272,7 @@ function drush_provision_hostmaster_install($site = NULL) {
   drush_print("");
   drush_print(dt("You should now log in to the Aegir frontend by opening the following link in your web browser:"));
   drush_print("");
-  drush_print($data['context']['login_link']);
+  drush_print($data['entity']['login_link']);
   drush_print("");
   drush_print("");
   drush_print("==============================================================================");

@@ -6,10 +6,10 @@ class Provision_Service_db extends Provision_Service {
   /**
    * Register the db handler for sites, based on the db_server option.
    */
-  static function subscribe_site($context) {
-    $context->setProperty('db_server', '@server_master');
-    $context->is_oid('db_server');
-    $context->service_subscribe('db', $context->db_server->name);
+  static function subscribe_site($entity) {
+    $entity->setProperty('db_server', '@server_master');
+    $entity->is_oid('db_server');
+    $entity->service_subscribe('db', $entity->db_server->name);
   }
 
   static function option_documentation() {
@@ -52,7 +52,7 @@ class Provision_Service_db extends Provision_Service {
    * Find a viable database name, based on the site's uri.
    */ 
   function suggest_db_name() {
-    $uri = $this->context->uri;
+    $uri = $this->entity->uri;
 
     $suggest_base = substr(str_replace(array('.', '-'), '' , preg_replace('/^www\./', '', $uri)), 0, 16);
 
@@ -231,7 +231,7 @@ class Provision_Service_db extends Provision_Service {
    * access to the site database.
    */
   function grant_host_list() {
-    return array_unique(array_map(array($this, 'grant_host'), $this->context->service('http')->grant_server_list()));
+    return array_unique(array_map(array($this, 'grant_host'), $this->entity->service('http')->grant_server_list()));
   }
 
   /**

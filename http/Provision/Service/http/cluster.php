@@ -23,7 +23,7 @@ class Provision_Service_http_cluster extends Provision_Service_http {
     $ret = TRUE;
     foreach ($this->server->cluster_web_servers as $server) {
       // If any methods return false, return false for the whole operation.
-      $result = call_user_func_array(array(d($server)->service('http', $this->context), $method), $args);
+      $result = call_user_func_array(array(d($server)->service('http', $this->entity), $method), $args);
       $ret = $ret && $result;
     }
     return $ret;
@@ -70,7 +70,7 @@ class Provision_Service_http_cluster extends Provision_Service_http {
   function grant_server_list() {
     return array_merge(
       array_map('d', $this->server->cluster_web_servers),
-      array($this->context->platform->server)
+      array($this->entity->platform->server)
     );
   }
 }

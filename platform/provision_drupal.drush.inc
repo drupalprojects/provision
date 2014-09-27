@@ -762,15 +762,15 @@ function provision_prepare_environment() {
  * For the changes to become available, and more importantly passed to the
  * front end, we need to call this function after calling provision commands.
  */
-function provision_reload_config($context, $file = NULL) {
-  $file = ($file) ? $file : _drush_config_file($context);
+function provision_reload_config($entity, $file = NULL) {
+  $file = ($file) ? $file : _drush_config_file($entity);
   if (file_exists($file)) {
-    drush_log("Reloading $context drushrc.php from $file");
+    drush_log("Reloading $entity drushrc.php from $file");
     include($file);
     // $options will be defined by the config file included above.
     if (sizeof($options)) {
-      $options = array_merge(drush_get_context($context, array()), $options);
-      drush_set_context($context, $options);
+      $options = array_merge(drush_get_context($entity, array()), $options);
+      drush_set_context($entity, $options);
     }
   }
 }
