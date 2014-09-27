@@ -27,7 +27,7 @@ class Provision_Config_Drushrc extends Provision_Config {
 
   function load_data() {
     // we fetch the entity to pass into the template based on the entity name
-    $this->data = array_merge(drush_get_entity($this->entity_name), $this->data);
+    $this->data = array_merge(drush_get_context($this->entity_name), $this->data);
   }
 
   function process() {
