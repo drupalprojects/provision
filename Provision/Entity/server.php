@@ -25,7 +25,11 @@ class Provision_Entity_server extends Provision_Entity {
       'aegir_root' => 'server: Aegir root; default ' . getenv('HOME'),
       'master_url' => 'server: Hostmaster URL',
     );
-    foreach (drush_command_invoke_all('provision_services') as $service => $default) {
+
+    $services = drush_command_invoke_all('provision_services');
+    print_r($services);
+
+    foreach ($services as $service => $default) {
       // TODO: replace this file scanning nastiness, with a hook!
       $reflect = new reflectionClass('Provision_Service_' . $service);
       $base_dir = dirname($reflect->getFilename());

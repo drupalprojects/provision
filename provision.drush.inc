@@ -330,13 +330,17 @@ function drush_provision_save($alias = NULL) {
   }
   else {
     // trigger additional logic that should happen only on save.
+    drush_log('======================= d($alias)->type_invoke("save"); ', 'ok');
     d($alias)->type_invoke('save');
     // create or update the record
+    drush_log('======================= d($alias)->write_alias() ', 'ok');
     d($alias)->write_alias();
   }
 }
 
 function drush_provision_verify() {
+  drush_log('=======================   d()->command_invoke(verify); ', 'ok');
+
   d()->command_invoke('verify');
 }
 
