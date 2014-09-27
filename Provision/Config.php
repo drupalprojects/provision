@@ -17,11 +17,11 @@ class Provision_Config {
   public $data = array();
 
   /**
-   * A Provision_Context object thie configuration relates to.
+   * A Provision_Entity object thie configuration relates to.
    *
-   * @var Provision_Context
+   * @var Provision_Entity
    */
-  public $context = NULL;
+  public $entity = NULL;
 
   /**
    * If set, replaces file name in log messages.
@@ -49,32 +49,32 @@ class Provision_Config {
   public $store = NULL;
 
   /**
-   * Forward $this->... to $this->context->...
+   * Forward $this->... to $this->entity->...
    * object.
    */
   function __get($name) {
-    if (isset($this->context)) {
-      return $this->context->$name;
+    if (isset($this->entity)) {
+      return $this->entity->$name;
     }
   }
 
   /**
    * Constructor, overriding not recommended.
    *
-   * @param $context
-   *   An alias name for d(), the Provision_Context that this configuration
+   * @param $entity
+   *   An alias name for d(), the Provision_Entity that this configuration
    *   is relevant to.
    * @param $data
    *   An associative array to potentially manipulate in process() and make
    *   available as variables to the template.
    */
-  function __construct($context, $data = array()) {
+  function __construct($entity, $data = array()) {
     if (is_null($this->template)) {
       throw new Exception(dt("No template specified for: %class", array('%class' => get_class($this))));
     }
 
-    // Accept both a reference and an alias name for the context.
-    $this->context = is_object($context) ? $context : d($context);
+    // Accept both a reference and an alias name for the entity.
+    $this->entity = is_object($entity) ? $entity : d($entity);
 
     if (sizeof($data)) {
       $this->data = $data;
@@ -82,7 +82,7 @@ class Provision_Config {
 
     if (!is_null($this->data_store_class) && class_exists($this->data_store_class)) {
       $class = $this->data_store_class;
-      $this->store = new $class($context, $data);
+      $this->store = new $class($entity, $data);
     }
 
   }

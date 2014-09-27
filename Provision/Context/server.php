@@ -1,16 +1,16 @@
 <?php
 
 /**
- * @file Provision named context server class.
+ * @file Provision named entity server class.
  */
 
 /**
- * Server context class.
+ * Server entity class.
  *
  * This class bootstraps the Service API by generating server
  * objects for each of the available service types.
  */
-class Provision_Context_server extends Provision_Context {
+class Provision_Entity_server extends Provision_Entity {
   /**
    * Associative array of services for this server.
    *
@@ -115,10 +115,10 @@ class Provision_Context_server extends Provision_Context {
   }
 
   /**
-   * Retrieve a service of a specific type from the context.
+   * Retrieve a service of a specific type from the entity.
    */
   function service($service, $name = null) {
-    $this->services[$service]->setContext(($name) ? $name : $this->name);
+    $this->services[$service]->setEntity(($name) ? $name : $this->name);
     return $this->services[$service];
   }
 
@@ -164,7 +164,7 @@ class Provision_Context_server extends Provision_Context {
    *   Full path to sync.
    * @param $additional_options
    *   An array of options that overrides whatever was passed in on the command
-   *   line (like the 'process' context, but only for the scope of this one
+   *   line (like the 'process' entity, but only for the scope of this one
    *   call).
    */
   function sync($path = NULL, $additional_options = array()) {
@@ -213,7 +213,7 @@ class Provision_Context_server extends Provision_Context {
    *   Full path to fetch.
    * @param $additional_options
    *   An array of options that overrides whatever was passed in on the command
-   *   line (like the 'process' context, but only for the scope of this one
+   *   line (like the 'process' entity, but only for the scope of this one
    *   call).
    */
   function fetch($path, $additional_options = array()) {

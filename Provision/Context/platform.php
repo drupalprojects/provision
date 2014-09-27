@@ -1,14 +1,14 @@
 <?php
 
 /**
- * @file Provision named context platform class.
+ * @file Provision named entity platform class.
  */
 
 
 /**
- * Class for the platform context.
+ * Class for the platform entity.
  */
-class Provision_Context_platform extends Provision_Context {
+class Provision_Entity_platform extends Provision_Entity {
   public $parent_key = 'server';
 
   static function option_documentation() {

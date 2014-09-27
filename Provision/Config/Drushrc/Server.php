@@ -8,6 +8,6 @@
  * Server level config for drushrc.php files.
  */
 class Provision_Config_Drushrc_Server extends Provision_Config_Drushrc {
-  protected $context_name = 'user';
+  protected $entity_name = 'user';
   public $description = 'Server drush configuration';
 }

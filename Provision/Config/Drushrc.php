@@ -14,24 +14,24 @@ class Provision_Config_Drushrc extends Provision_Config {
   public $template = 'provision_drushrc.tpl.php';
   public $description = 'Drush configuration file';
   protected $mode = 0440;
-  protected $context_name = 'drush';
+  protected $entity_name = 'drush';
 
   function filename() {
-    return _drush_config_file($this->context_name);
+    return _drush_config_file($this->entity_name);
   }
 
-  function __construct($context, $data = array()) {
-    parent::__construct($context, $data);
+  function __construct($entity, $data = array()) {
+    parent::__construct($entity, $data);
     $this->load_data();
   }
 
   function load_data() {
-    // we fetch the context to pass into the template based on the context name
-    $this->data = array_merge(drush_get_context($this->context_name), $this->data);
+    // we fetch the entity to pass into the template based on the entity name
+    $this->data = array_merge(drush_get_entity($this->entity_name), $this->data);
   }
 
   function process() {
-    unset($this->data['context-path']);
+    unset($this->data['entity-path']);
     unset($this->data['config-file']);
     $this->data['option_keys'] = array_keys($this->data);
   }

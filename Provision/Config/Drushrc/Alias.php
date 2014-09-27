@@ -12,14 +12,14 @@ class Provision_Config_Drushrc_Alias extends Provision_Config_Drushrc {
 
   /**
    * @param $name
-   *   String '\@name' for named context.
+   *   String '\@name' for named entity.
    * @param $options
    *   Array of string option names to save.
    */
-  function __construct($context, $data = array()) {
-    parent::__construct($context, $data);
+  function __construct($entity, $data = array()) {
+    parent::__construct($entity, $data);
     $this->data = array(
-      'aliasname' => ltrim($context, '@'),
+      'aliasname' => ltrim($entity, '@'),
       'options' => $data,
     );
   }

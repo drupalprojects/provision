@@ -16,7 +16,7 @@
  *   $name.
  *
  * @return
- *   provision_Context object or NULL if it can't be loaded and
+ *   provision_Entity object or NULL if it can't be loaded and
  *   $allow_creation == FALSE.
  */
 function & d($name = NULL, $_root_object = FALSE, $allow_creation = TRUE) {
@@ -103,7 +103,7 @@ function provision_context_factory($name, $allow_creation = TRUE) {
   elseif (isset($options['context_type'])) {
     $type = $options['context_type'];
   }
-  $classname = "Provision_Context_{$type}";
+  $classname = "Provision_Entity_{$type}";
 
   return new $classname($name);
 }

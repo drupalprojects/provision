@@ -28,8 +28,8 @@ class Provision_Config_Data_Store extends Provision_Config {
   protected $mode = 0700;
 
 
-  function __construct($context, $data = array()) {
-    parent::__construct($context, $data);
+  function __construct($entity, $data = array()) {
+    parent::__construct($entity, $data);
 
     $this->load_data();
   }

@@ -1,15 +1,15 @@
 <?php
 /**
  * @file
- * Provides the Provision_Context class.
+ * Provides the Provision_Entity class.
  */
 
 /**
- * Base context class.
+ * Base entity class.
  *
  * Contains magic getter/setter functions
  */
-class Provision_Context {
+class Provision_Entity {
   /**
    * Name for saving aliases and referencing.
    */
@@ -28,7 +28,7 @@ class Provision_Context {
   protected $properties = array();
 
   /**
-   * Keeps track of properites that are names of Provision_Context objects.
+   * Keeps track of properites that are names of Provision_Entity objects.
    * Set with is_oid().
    */
   protected $oid_map = array();
@@ -38,7 +38,7 @@ class Provision_Context {
 
   /**
    * Retrieve value from $properties array if property does not exist in class
-   * proper. Properties that refer to Provision_Context objects will be run
+   * proper. Properties that refer to Provision_Entity objects will be run
    * through d(), see is_oid().
    *
    * TODO: consider returning a reference to the value, so we can do things like:
@@ -63,7 +63,7 @@ class Provision_Context {
   }
 
   /**
-   * Specify that a property contains a named context.
+   * Specify that a property contains a named entity.
    */
   function is_oid($name) {
     $this->oid_map[$name] = TRUE;
@@ -121,7 +121,7 @@ class Provision_Context {
   function method_invoke($func, $args = array(), $services = TRUE) {
     provision::method_invoke($this, $func, $args);
     // Services will be invoked regardless of the existence of a
-    // implementation in the context class.
+    // implementation in the entity class.
     if ($services) {
       $this->services_invoke($func, $args);
     }
@@ -131,7 +131,7 @@ class Provision_Context {
    * Execute the method for the current object type.
    *
    * This function is used to avoid having to conditionally
-   * check the context objects type to execute the correct code.
+   * check the entity objects type to execute the correct code.
    *
    * This will generate a function call like : $method_$type,
    * ie: $this->init_server().
@@ -148,7 +148,7 @@ class Provision_Context {
    *
    * This method provides a general case for extending drush commands.
    * This allows the developer to not have to conditionally check the
-   * context object type in all his methods, and reduces the need
+   * entity object type in all his methods, and reduces the need
    * to define drush_hook_$command methods for a lot of cases.
    *
    * This will generate a function call like : $method_$type_cmd.
@@ -158,7 +158,7 @@ class Provision_Context {
   }
 
   /**
-   * Constructor for the context.
+   * Constructor for the entity.
    */
   function __construct($name) {
     $this->name = $name;
@@ -170,9 +170,9 @@ class Provision_Context {
   function init() {
     preg_match("/^Provision_Context_(.*)$/", get_class($this), $matches);
     $this->type = $matches[1];
-    $this->setProperty('context_type', $this->type);
+    $this->setProperty('entity_type', $this->type);
 
-    // Set up the parent of this context object.
+    // Set up the parent of this entity object.
     if (!is_null($this->parent_key)) {
       $this->setProperty($this->parent_key);
       $this->is_oid($this->parent_key);
@@ -215,7 +215,7 @@ class Provision_Context {
   }
 
   /**
-   * Write out this named context to an alias file.
+   * Write out this named entity to an alias file.
    */
   function write_alias() {
     $config = new Provision_Config_Drushrc_Alias($this->name, $this->properties);
@@ -226,7 +226,7 @@ class Provision_Context {
    * Subscribe a service handler.
    *
    * All future calls to $this->service($service) will be redirected
-   * to the context object of #name you specify.
+   * to the entity object of #name you specify.
    */
   function service_subscribe($service, $name) {
     $this->service_subs[$service] = $name;
@@ -242,7 +242,7 @@ class Provision_Context {
    * @param $service
    *   Service type, such as 'http' or 'db'
    * @param $name
-   *   Override service owner with a context name as accepted by d().
+   *   Override service owner with a entity name as accepted by d().
    *
    * @return
    *   A Provision_Service object.
@@ -260,7 +260,7 @@ class Provision_Context {
   }
 
   /**
-   * Call method $callback on each of the context's service objects.
+   * Call method $callback on each of the entity's service objects.
    *
    * @param $callback
    *   A Provision_Service method.
@@ -303,7 +303,7 @@ class Provision_Context {
   }
 
   /**
-   * Return context-specific configuration options for help.
+   * Return entity-specific configuration options for help.
    *
    * @return
    *   array('option' => 'description')

@@ -1,10 +1,10 @@
 <?php
 
 /**
- * @file Provision named context site class.
+ * @file Provision named entity site class.
  */
 
-class Provision_Context_site extends Provision_Context {
+class Provision_Entity_site extends Provision_Entity {
   public $parent_key = 'platform';
 
   static function option_documentation() {

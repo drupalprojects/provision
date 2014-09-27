@@ -15,14 +15,14 @@ class Provision_Service extends Provision_ChainedState {
   protected $server = '@server_master';
 
   /**
-   * The context in which this service stores its data
+   * The entity in which this service stores its data
    *
    * This is usually an object made from a class derived from the
-   * Provision_Context base class
+   * Provision_Entity base class
    *
-   * @see Provision_Context
+   * @see Provision_Entity
    */
-  public $context;
+  public $entity;
 
   protected $service = NULL;
   protected $application_name = NULL;
@@ -110,15 +110,15 @@ class Provision_Service extends Provision_ChainedState {
       $data = array('name' => $data);
     }
 
-    if (!isset($this->config_cache[$this->context->name][$config])) {
-      $this->config_cache[$this->context->name][$config] = array();
+    if (!isset($this->config_cache[$this->entity->name][$config])) {
+      $this->config_cache[$this->entity->name][$config] = array();
       foreach ((array) $this->configs[$config] as $class) {
-        $this->config_cache[$this->context->name][$config][] = new $class($this->context, array_merge($this->config_data($config), $data));
+        $this->config_cache[$this->entity->name][$config][] = new $class($this->entity, array_merge($this->config_data($config), $data));
       }
     }
 
-    if (isset($this->config_cache[$this->context->name][$config])) {
-      $this->_config = $this->config_cache[$this->context->name][$config];
+    if (isset($this->config_cache[$this->entity->name][$config])) {
+      $this->_config = $this->config_cache[$this->entity->name][$config];
     }
 
     return $this;
@@ -299,17 +299,17 @@ class Provision_Service extends Provision_ChainedState {
   }
 
   /**
-   * Set the currently active context of the service.
+   * Set the currently active entity of the service.
    *
-   * @arg mixed $context
-   *    the context to store this services data into. this can be an
+   * @arg mixed $entity
+   *    the entity to store this services data into. this can be an
    *    object, or a string in which case the object will be loaded
    *    dynamically with d()
    *
    * @see d()
    */
-  function setContext($context) {
-    $this->context = is_object($context) ? $context : d($context);
+  function setEntity($entity) {
+    $this->entity = is_object($entity) ? $entity : d($entity);
   }
 
   /**

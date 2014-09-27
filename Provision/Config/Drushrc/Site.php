@@ -8,7 +8,7 @@
  * Class for writing $platform/sites/$url/drushrc.php files.
  */
 class Provision_Config_Drushrc_Site extends Provision_Config_Drushrc {
-  protected $context_name = 'site';
+  protected $entity_name = 'site';
   public $template = 'provision_drushrc_site.tpl.php';
   public $description = 'Site Drush configuration file';
 

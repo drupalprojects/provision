@@ -45,7 +45,7 @@ function drush_provision_hostmaster_uninstall() {
       drush_log(dt("Destroying @resource", array('@resource' => $resource->uri)));
       $context = $resource->context;
       if (!$context) {
-        drush_log(dt('Context missing for resource @resource, guessing', array('@resource' => $resource->uri)), 'warning');
+        drush_log(dt('Entity missing for resource @resource, guessing', array('@resource' => $resource->uri)), 'warning');
         $context = $resource->uri;
       }
       provision_backend_invoke($context, 'provision-delete');
@@ -57,7 +57,7 @@ function drush_provision_hostmaster_uninstall() {
       drush_log(dt("Destroying @resource", array('@resource' => $resource->uri)));
       $context = $resource->context;
       if (!$context) {
-        drush_log(dt('Context missing for platform @resource, ignoring', array('@resource' => $resource->uri)), 'warning');
+        drush_log(dt('Entity missing for platform @resource, ignoring', array('@resource' => $resource->uri)), 'warning');
       } else {
         provision_backend_invoke($context, 'provision-delete');
       }
@@ -69,7 +69,7 @@ function drush_provision_hostmaster_uninstall() {
       drush_log(dt("Destroying @resource", array('@resource' => $resource->uri)));
       $context = $resource->context;
       if (!$context) {
-        drush_log(dt('Context missing for platform @resource, ignoring', array('@resource' => $resource->uri)), 'warning');
+        drush_log(dt('Entity missing for platform @resource, ignoring', array('@resource' => $resource->uri)), 'warning');
       } else {
         provision_backend_invoke($context, 'provision-delete');
       }

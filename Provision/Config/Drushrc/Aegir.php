@@ -8,12 +8,12 @@
  * Class for writing the /var/aegir/.drush/drushrc.php file.
  */
 class Provision_Config_Drushrc_Aegir extends Provision_Config_Drushrc {
-  protected $context_name = 'home.drush';
+  protected $entity_name = 'home.drush';
   public $template = 'provision_drushrc_aegir.tpl.php';
   public $description = 'Aegir Drush configuration file';
 
-  function __construct($context = '@none', $data = array()) {
-    parent::__construct($context, $data);
+  function __construct($entity = '@none', $data = array()) {
+    parent::__construct($entity, $data);
     $this->load_data();
   }
 
