@@ -293,6 +293,7 @@ function provision_drush_command() {
      'client_email' => dt('Email of the first client to create in the frontend'),
      'client_name' => dt('Name of the first client to create in the frontend (default: %user)', array('%user' => 'admin')),
      'makefile' => dt('The makefile used to create the hostmaster platform (default: %makefile)', array('%makefile' => dirname(__FILE__). '/aegir.make')),
+      'profile' => dt('The installation profile to use when creating the front-end. (default: %profile)', array('%profile' => 'hostmaster')),
      'aegir_host' => dt('Fully qualified domain name of the local server (default: %fqdn)', array('%fqdn' => provision_fqdn())),
      'script_user' => dt('User to run the backend as (default: %user)', array('%user' => provision_current_user())),
      'web_group' => dt('Group the webserver is running as (default: %group)', array('%group' => _provision_default_web_group())),

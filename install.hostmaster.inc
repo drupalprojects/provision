@@ -131,8 +131,7 @@ The following settings will be used:
  Aegir version: !version
  Aegir platform path: !root
  Admin email: !email
- !makefile
- !profile',
+ !makefile !profile',
   array(
     '!site' => $site,
     '!fqdn' => drush_get_option('aegir_host'),
