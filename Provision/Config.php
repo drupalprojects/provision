@@ -187,8 +187,10 @@ class Provision_Config {
    * 5. Render template with $this and $data and write out to filename().
    * 6. If $mode and/or $group are set, apply them for the new file.
    */
-  function write() {
-    $filename = $this->filename();
+  function write($filename = NULL) {
+    if (is_null($filename)) {
+      $filename = $this->filename();
+    }
     // Make directory structure if it does not exist.
     if ($filename && !provision_file()->exists(dirname($filename))->status()) {
       provision_file()->mkdir(dirname($filename))

@@ -161,9 +161,9 @@ function provision_drupal_fetch_site($alias = NULL) {
 /**
  * Generate a settings file for the site.
  */
-function _provision_drupal_create_settings_file() {
+function _provision_drupal_create_settings_file($filename) {
   $config = new Provision_Config_Drupal_Settings(d()->name, drush_get_context('site'));
-  $config->write();
+  $config->write($filename);
 }
 
 /**
