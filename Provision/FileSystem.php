@@ -144,7 +144,7 @@ class Provision_FileSystem extends Provision_ChainedState {
     if (!@call_user_func($func, $path, $perms)) {
       $this->tokens['@reason'] = dt('chmod to @perm failed on @path', array('@perm' => sprintf('%o', $perms), '@path' => $path));
     }
-    clearstatcache(); // this needs to be called, otherwise we get the old info 
+    clearstatcache(); // this needs to be called, otherwise we get the old info
     $this->last_status = substr(sprintf('%o', fileperms($path)), -4) == sprintf('%04o', $perms);
 
     return $this;
@@ -169,19 +169,19 @@ class Provision_FileSystem extends Provision_ChainedState {
     // We do not attempt to chown symlinks.
     if (is_link($path)) {
       return $this;
-    } 
+    }
 
     $func = ($recursive) ? array($this, '_chown_recursive') : 'chown';
     if ($owner = provision_posix_username($owner)) {
       if (!call_user_func($func, $path, $owner)) {
-        $this->tokens['@reason'] = dt("chown to @owner failed on @path", array('@owner' => $owner, '@path' => $path)) ; 
+        $this->tokens['@reason'] = dt("chown to @owner failed on @path", array('@owner' => $owner, '@path' => $path)) ;
       }
     }
     else {
       $this->tokens['@reason'] = dt("the user does not exist");
     }
 
-    clearstatcache(); // this needs to be called, otherwise we get the old info 
+    clearstatcache(); // this needs to be called, otherwise we get the old info
     $this->last_status = $owner == provision_posix_username(fileowner($path));
 
     return $this;
@@ -206,7 +206,7 @@ class Provision_FileSystem extends Provision_ChainedState {
     // We do not attempt to chown symlinks.
     if (is_link($path)) {
       return $this;
-    } 
+    }
 
     $func = ($recursive) ? array($this, '_chgrp_recursive') : 'chgrp';
     if ($group = provision_posix_groupname($gid)) {
@@ -223,7 +223,7 @@ class Provision_FileSystem extends Provision_ChainedState {
       $this->tokens['@reason'] = dt("the group does not exist");
     }
 
-    clearstatcache(); // this needs to be called, otherwise we get the old info 
+    clearstatcache(); // this needs to be called, otherwise we get the old info
     $this->last_status = $group == provision_posix_groupname(filegroup($path));
 
     return $this;
@@ -252,7 +252,7 @@ class Provision_FileSystem extends Provision_ChainedState {
     elseif (!file_exists($path2)) {
       $this->last_status = rename($path1, $path2);
     }
-    elseif (rename($path1, $temp)) { 
+    elseif (rename($path1, $temp)) {
       if (rename($path2, $path1)) {
         if (rename($temp, $path2)) {
           $this->last_status = TRUE; // path1 is now path2
@@ -265,7 +265,7 @@ class Provision_FileSystem extends Provision_ChainedState {
       else {
         // same .. just in reverse
         $this->last_status = rename($temp, $path1);
-      }   
+      }
     }
 
     return $this;
@@ -387,8 +387,8 @@ class Provision_FileSystem extends Provision_ChainedState {
         ->fail($name . ' ownership of @path could not be changed to @uid.', 'DRUSH_PERM_ERROR');
 
       $this->chmod($path, $perms)
-        ->succeed($name . ' permissions of @path have been changed to @perm.')
-        ->fail($name . ' permissions of @path could not be changed to @perm.', 'DRUSH_PERM_ERROR');
+        ->succeed($name . ' permissions of @path have been changed to @perm.');
+        #->fail($name . ' permissions of @path could not be changed to @perm.', 'DRUSH_PERM_ERROR');
 
       $this->writable($path)
         ->succeed($name . ' path @path is writable.')
