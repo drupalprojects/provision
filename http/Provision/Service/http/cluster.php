@@ -33,12 +33,12 @@ class Provision_Service_http_cluster extends Provision_Service_http {
     $this->_each_server(__FUNCTION__);
   }
 
-  function create_config($config) {
-    $this->_each_server(__FUNCTION__, array($config));
+  function create_config($config, $data = array()) {
+    $this->_each_server(__FUNCTION__, array($config, $data));
   }
 
-  function delete_config($config) {
-    $this->_each_server(__FUNCTION__, array($config));
+  function delete_config($config, $data = array()) {
+    $this->_each_server(__FUNCTION__, array($config, $data));
 
     return $this;
   }
