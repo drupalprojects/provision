@@ -35,111 +35,30 @@ We are making the following assumptions:
     }
   }
 
-  // If the alias file exists, it means we are migrating from a post alpha9 release.
-  if (is_readable($alias_file)) {
-    provision_backend_invoke('@server_master', 'provision-verify');
-    provision_backend_invoke('@hostmaster', 'provision-verify');
+  provision_backend_invoke('@server_master', 'provision-verify');
+  provision_backend_invoke('@hostmaster', 'provision-verify');
 
-    drush_set_option('site_name', '@hostmaster');
-    drush_set_option('old_platform', d('@hostmaster')->platform->name);
+  drush_set_option('site_name', '@hostmaster');
+  drush_set_option('old_platform', d('@hostmaster')->platform->name);
 
-    $new_platform = '@platform_' . preg_replace("/[!\W]/", "", basename(rtrim($platform, '/')));
-    drush_invoke_process('@none', "provision-save", array($new_platform), array(
-      'context_type' => 'platform',
-      'server' => '@server_master',
-      'web_server' => '@server_master',
-      'root' => $platform,
-      'makefile' => drush_get_option('makefile', dirname(__FILE__) . '/aegir.make'),
-    ));
-    // propagate working-copy args downward
-    $options = array();
-    if (drush_get_option('working-copy')) {
-      $options['working-copy'] = 1;
-    }
-    provision_backend_invoke($new_platform, 'provision-verify', array(), $options);
-    drush_set_option('new_platform', $new_platform);
-    // exit if an error has occured.
-    if (drush_get_error()) {
-      return false;
-    }
+  $new_platform = '@platform_' . preg_replace("/[!\W]/", "", basename(rtrim($platform, '/')));
+  drush_invoke_process('@none', "provision-save", array($new_platform), array(
+    'context_type' => 'platform',
+    'server' => '@server_master',
+    'web_server' => '@server_master',
+    'root' => $platform,
+    'makefile' => drush_get_option('makefile', dirname(__FILE__) . '/aegir.make'),
+  ));
+  // propagate working-copy args downward
+  $options = array();
+  if (drush_get_option('working-copy')) {
+    $options['working-copy'] = 1;
   }
-  else {
-
-    // add a server record :
-    $server = '@server_master';
-    /**
-     * @deprecated in drush3 it's 'options', in drush 4 it's 'cli', drop
-     * 'options' when we drop drush3 support
-     */
-    $context = drush_get_context('cli') ? 'cli' : 'options';
-    drush_invoke_process('@none', "provision-save", array($server), array(
-      'context_type' => 'server',
-      'aegir_root' => dirname(rtrim($data['config_path'], '/')),
-      'remote_host' => php_uname('n'),
-      'script_user' => $data['script_user'],
-     // apache or nginx or..
-      'http_service_type' => drush_get_option('http_service_type', 'apache', $context),
-      'web_group' => $data['web_group'],
-      'master_url' => $data['master_url'],
-      'restart_cmd' => $data['restart_cmd'],
-     // mysql
-      'db_service_type' => 'mysql',
-      'master_db' => $data['master_db'],
-    ));
-
-    provision_backend_invoke($server, 'provision-verify');
-    drush_set_option('server_name', $server);
-    // exit if an error has occured.
-    if (drush_get_error()) {
-      return false;
-    }
-
-
-    $old_platform = '@platform_' . preg_replace("/[!\W]/", "", basename(rtrim($data['publish_path'], '/')));
-    drush_invoke_process('@none', "provision-save", array($old_platform), array(
-      'context_type' => 'platform',
-      'server' => $server,
-      'web_server' => $server,
-      'root' => $data['publish_path'],
-    ));
-    provision_backend_invoke($old_platform, 'provision-verify');
-    drush_set_option('old_platform', $old_platform);
-    // exit if an error has occured.
-    if (drush_get_error()) {
-      return false;
-    }
-
-    $new_platform = '@platform_' . preg_replace("/[!\W]/", "", basename(rtrim($platform, '/')));
-    drush_invoke_process('@none', "provision-save", array($new_platform), array(
-      'context_type' => 'platform',
-      'server' => $server,
-      'web_server' => $server,
-      'root' => $platform,
-      'makefile' => drush_get_option('makefile', dirname(__FILE__) . '/aegir.make'),
-    ));
-    provision_backend_invoke($new_platform, 'provision-verify');
-    drush_set_option('new_platform', $new_platform);
-    // exit if an error has occured.
-    if (drush_get_error()) {
-      return false;
-    }
-
-
-    $site_name = '@hostmaster';
-    drush_invoke_process('@none', "provision-save", array($site_name), array(
-      'context_type' => 'site',
-      'platform' => $old_platform,
-      'db_server' => $server,
-      'uri' => $site,
-      'profile' => 'hostmaster',
-      'drush_aliases' => 'hm',
-    ));
-    provision_backend_invoke($site_name, 'provision-verify');
-    drush_set_option('site_name', $site_name);
-    // exit if an error has occured.
-    if (drush_get_error()) {
-      return false;
-    }
+  provision_backend_invoke($new_platform, 'provision-verify', array(), $options);
+  drush_set_option('new_platform', $new_platform);
+  // exit if an error has occured.
+  if (drush_get_error()) {
+    return false;
   }
 }
 
