@@ -234,6 +234,7 @@ function provision_drush_command() {
     'arguments' => array(
       '@platform_name' => dt('The Drush alias of the platform.')),
     'options' => array(
+      'new_db_server' => dt('The database server (alias) to which we will migrate the site.'),
       'profile' => dt('The Drupal profile to use.')),
     'allow-additional-options' => TRUE,
     'examples' => array(
@@ -296,6 +297,7 @@ function provision_drush_command() {
     ),
     'options' => array(
       'http_service_type' => dt('Webserver type to configure (default: %webserver)', array('%webserver' => 'apache')),
+      'new_db_server' => dt('The database server (alias) to which we will migrate the site.'),
       'makefile' => dt('The makefile used to create the hostmaster platform (default: %makefile)', array('%makefile' => dirname(__FILE__). '/aegir.make')),
       'working-copy' => dt('Keep VCS files when building the hostmaster platform using Drush make.')
     ),

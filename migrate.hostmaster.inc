@@ -152,7 +152,11 @@ function drush_provision_pre_hostmaster_migrate($site, $platform) {
 }
 
 function drush_provision_hostmaster_migrate($site, $platform) {
-  provision_backend_invoke(drush_get_option('site_name'), 'provision-migrate', array(drush_get_option('new_platform')));
+  $options = array();
+  if ($db_server = drush_get_option('new_db_server', FALSE)) {
+    $options['new_db_server'] = $db_server;
+  }
+  provision_backend_invoke(drush_get_option('site_name'), 'provision-migrate', array(drush_get_option('new_platform')), $options);
 }
 
 function drush_provision_post_hostmaster_migrate($site, $platform) {
