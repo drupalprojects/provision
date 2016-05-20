@@ -82,9 +82,15 @@ function drush_provision_post_hostmaster_migrate($site, $platform) {
   provision_backend_invoke(drush_get_option('site_name'), 'cache-clear', array('drush'));
   // we pass the context names we generated to the task so we can enforce that the names
   // stay the same.
-  provision_backend_invoke(drush_get_option('site_name'), 'hosting-resume', array(), array(
+  $options = array(
     'old_platform_name' => drush_get_option('old_platform'),
     'new_platform_name' => drush_get_option('new_platform'),
-  ));
+  );
+  // We pass the new database server to the front-end, to update the hostmaster
+  // site node.
+  if ($db_server = drush_get_option('new_db_server', FALSE)) {
+    $options['new_db_server'] = $db_server;
+  }
+  provision_backend_invoke(drush_get_option('site_name'), 'hosting-resume', array(), $options);
 }
 
