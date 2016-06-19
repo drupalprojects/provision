@@ -4,10 +4,14 @@
  * Before starting to delete the site, make a backup
  */
 function drush_provision_drupal_pre_provision_delete($backup_file = NULL) {
-  if (d()->type === 'site') {
+  if (d()->type === 'site' && !drush_get_option('skip-backup', FALSE)) {
     drush_set_option('force', true, 'process');
+    drush_log(dt('Backing up site.'), 'notice');
     drush_invoke("provision-backup", $backup_file);
     drush_unset_option('force', 'process');
+  }
+  elseif (d()->type === 'site' && drush_get_option('skip-backup', FALSE)) {
+    drush_log(dt('Skipping backup.'), 'notice');
   }
 }
 
